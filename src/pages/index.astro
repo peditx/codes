@@ -1,0 +1,84 @@
+---
+import { getCollection } from "astro:content";
+import CyberLayout from "../layouts/CyberLayout.astro";
+
+// Fetch all releases and sort them by date descending
+const allReleases = (await getCollection("releases"))
+  .sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+
+// Format date utility
+const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('fa-IR', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    }).format(date);
+}
+
+// Map releases to be passed to the layout if needed, or handle rendering here.
+// We will render the dynamic list right in the body below the static sections.
+---
+
+<CyberLayout title="PeDitXOS - هک کن، بساز، فرمانروایی کن" showStaticContent={true}>
+    <!-- HERO SECTION (Part of the initial design) -->
+    <section id="hero" class="hero-bg min-h-screen flex items-center justify-center pt-20">
+        <div id="particles-js"></div>
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+            <h1 class="text-5xl md:text-7xl lg:text-8xl font-black font-orbitron glitch text-neon-cyan" data-text="PeDitXOS">
+                PeDitX<span class="text-neon-magenta">OS</span>
+            </h1>
+            <p data-translate-key="hero_subtitle" class="mt-8 text-lg md:text-2xl max-w-3xl mx-auto text-gray-300 subtitle-glitch">
+                سیستم‌عامل OpenWrt خود را به یک کنسول مدیریتی قدرتمند و زیبا تبدیل کنید.
+            </p>
+            <div class="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
+                <a href="#install" data-translate-key="btn_start_install" class="btn-cyber py-4 px-10 text-lg uppercase tracking-wider w-full sm:w-auto">
+                    شروع نصب
+                </a>
+                <a href="https://firmware.peditxos.ir" class="btn-cyber !border-[var(--primary-magenta)] !text-[var(--primary-magenta)] hover:!bg-[var(--primary-magenta)] hover:!text-[var(--bg-color)] hover:!shadow-[var(--primary-magenta)] py-4 px-10 text-lg uppercase tracking-wider w-full sm:w-auto">
+                    <span data-translate-key="btn_start_compile">شروع کامپایل</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- RELEASES LIST SECTION (Your Blog/Homepage Content) -->
+    <section id="releases-list" class="py-20 bg-black/30">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 data-translate-key="nav_releases" class="text-4xl font-bold font-orbitron text-neon-cyan glitch" data-text="انتشارات">آخرین انتشارات</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {allReleases.length === 0 ? (
+                    <p class="text-center text-gray-500 md:col-span-3">
+                        هنوز محتوایی در بخش Releases منتشر نشده است.
+                    </p>
+                ) : (
+                    allReleases.map((release) => (
+                        <a href={`/releases/${release.slug}`} class="release-card p-6 rounded-lg block hover:no-underline">
+                            {release.data.coverImage && (
+                                <img 
+                                    src={release.data.coverImage} 
+                                    alt={release.data.title} 
+                                    class="w-full h-40 object-cover rounded-md mb-4 border border-[var(--primary-magenta)]/50"
+                                />
+                            )}
+                            <p class="text-sm text-neon-magenta mb-2 font-orbitron">
+                                {formatDate(release.data.pubDate)}
+                            </p>
+                            <h3 class="text-2xl font-bold text-neon-cyan mb-2 hover:underline">
+                                {release.data.title}
+                            </h3>
+                            <p class="text-gray-400">
+                                {release.data.description}
+                            </p>
+                            <span class="mt-4 inline-block text-[var(--primary-green)] text-sm">
+                                <i class="fas fa-arrow-left ml-2"></i> ادامه مطلب
+                            </span>
+                        </a>
+                    ))
+                )}
+            </div>
+        </div>
+    </section>
+</CyberLayout>
