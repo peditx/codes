@@ -4,12 +4,13 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -17,22 +18,28 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-
+          
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build Astro project
         run: npm run build
-
-      # Deploy job to GitHub Pages
-      # تغییر مسیر دیپلو: به جای gh-pages، مستقیم به main می فرستد
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        if: github.ref == 'refs/heads/main'
+        
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          # هدف را به شاخه اصلی (main) تغییر می دهیم
-          publish_branch: main
-          # این تنظیم اجازه می دهد که فایل های قدیمی حذف و فقط محتوای dist باقی بماند
-          force_orphan: true 
+          path: './dist'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
