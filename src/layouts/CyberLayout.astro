@@ -1,0 +1,670 @@
+---
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+	title: string;
+    // این ویژگی برای نمایش محتوای ثابت صفحات (مثل توضیحات پست) است
+    showStaticContent: boolean; 
+    
+    // اگر در صفحه ایندکس باشیم، محتوای پست‌ها را هم دریافت می‌کنیم
+    releases?: CollectionEntry<'releases'>[]; 
+}
+
+const { title, showStaticContent = true, releases = [] } = Astro.props;
+---
+
+<!DOCTYPE html>
+<!-- The lang and dir attributes will be set dynamically by JavaScript -->
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Title for the browser tab, will be set dynamically by JS -->
+    <title>{title}</title>
+
+    <!-- SEO Meta Tags - This description will be updated by JS for SEO crawlers that execute it -->
+    <meta name="description" content="PeDitXOS is an OpenWrt-based OS that simplifies router management with one-command Passwall installation, advanced network tweaks, and a beautiful graphical interface." data-translate-key-content="meta_description">
+    <meta name="keywords" content="PeDitXOS, OpenWrt, custom firmware, router, LuCI, Passwall, Tor, SSHPlus, web terminal, cyberpunk theme, router management, graphical interface, نصب Passwall, مدیریت روتر">
+    <meta name="author" content="PeDitXOS">
+
+    <!-- Open Graph & Twitter Card Meta Tags (Hardcoded in English) -->
+    <meta property="og:title" content="PeDitXOS - Hack, Build, Reign">
+    <meta property="og:description" content="PeDitXOS for OpenWrt: Install Passwall with one command and unlock powerful network & graphical tweaks for your router.">
+    <meta property="og:image" content="https://placehold.co/1200x630/0a0a14/00f6ff?text=PeDitXOS">
+    <meta property="og:url" content="https://peditxos.ir">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="en_US"> 
+    <meta property="og:site_name" content="PeDitXOS">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="PeDitXOS - Hack, Build, Reign">
+    <meta name="twitter:description" content="PeDitXOS for OpenWrt: Install Passwall with one command and unlock powerful network & graphical tweaks for your router.">
+    <meta name="twitter:image" content="https://placehold.co/1200x630/0a0a14/00f6ff?text=PeDitXOS">
+
+    <link rel="icon" href="/fav/favicon.ico" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="/fav/favicon.svg">
+    <link rel="apple-touch-icon" href="/fav/apple-touch-icon.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json" id="seo-structured-data">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "PeDitXOS",
+      "operatingSystem": "OpenWrt",
+      "applicationCategory": "OperatingSystem",
+      "description": "PeDitXOS is an OpenWrt-based OS that simplifies router management with one-command Passwall installation, advanced network tweaks, and a beautiful graphical interface.",
+      "url": "https://peditxos.ir",
+      "author": {
+        "@type": "Organization",
+        "name": "PeDitXOS"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0"
+      }
+    }
+    </script>
+    
+    <style>
+        /* --- Custom Styles for Glitch/Cyberpunk Theme (User Provided) --- */
+        :root {
+            --bg-color: #0a0a14;
+            --primary-cyan: #00f6ff;
+            --primary-magenta: #ff00c1;
+            --primary-green: #00ff85;
+            --card-bg: rgba(15, 24, 51, 0.5);
+            --border-color: rgba(0, 246, 255, 0.3);
+            --release-card-bg: rgba(15, 24, 51, 0.7); /* Slightly darker for releases */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #e0e0e0;
+            font-family: 'Rajdhani', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Scanline Overlay Effect */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 3px);
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+
+        .text-neon-cyan { color: var(--primary-cyan); text-shadow: 0 0 5px var(--primary-cyan), 0 0 10px var(--primary-cyan); }
+        .text-neon-magenta { color: var(--primary-magenta); text-shadow: 0 0 5px var(--primary-magenta), 0 0 10px var(--primary-magenta); }
+        .text-neon-green { color: var(--primary-green); text-shadow: 0 0 5px var(--primary-green), 0 0 10px var(--primary-green); }
+
+        .hero-bg {
+            background-color: var(--bg-color);
+            position: relative;
+            overflow: hidden;
+        }
+        #particles-js { position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 0; }
+
+        /* Glitch Effect for the Main Title */
+        .glitch {
+            position: relative;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .glitch:before, .glitch:after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            overflow: hidden;
+            clip: rect(0, 900px, 0, 0);
+        }
+        .glitch:before {
+            left: 2px;
+            text-shadow: -2px 0 var(--primary-magenta);
+            animation: glitch-anim-1 4s infinite linear alternate-reverse;
+        }
+        .glitch:after {
+            left: -2px;
+            text-shadow: -2px 0 var(--primary-green), 2px 2px var(--primary-magenta);
+            animation: glitch-anim-2 5s infinite linear alternate-reverse;
+        }
+        @keyframes glitch-anim-1 { 0% { clip: rect(42px, 9999px, 44px, 0); } 5% { clip: rect(12px, 9999px, 60px, 0); } 10% { clip: rect(40px, 9999px, 40px, 0); } 15% { clip: rect(15px, 9999px, 100px, 0); } 20% { clip: rect(80px, 9999px, 20px, 0); } 25% { clip: rect(30px, 9999px, 50px, 0); } 30% { clip: rect(50px, 9999px, 80px, 0); } 35% { clip: rect(10px, 9999px, 90px, 0); } 40% { clip: rect(70px, 9999px, 30px, 0); } 45% { clip: rect(20px, 9999px, 70px, 0); } 50% { clip: rect(60px, 9999px, 10px, 0); } 55% { clip: rect(90px, 9999px, 5px, 0); } 60% { clip: rect(35px, 9999px, 65px, 0); } 65% { clip: rect(5px, 9999px, 95px, 0); } 70% { clip: rect(75px, 9999px, 25px, 0); } 75% { clip: rect(25px, 9999px, 75px, 0); } 80% { clip: rect(65px, 9999px, 35px, 0); } 85% { clip: rect(95px, 9999px, 15px, 0); } 90% { clip: rect(45px, 9999px, 55px, 0); } 95% { clip: rect(55px, 9999px, 45px, 0); } 100% { clip: rect(10px, 9999px, 85px, 0); } }
+        @keyframes glitch-anim-2 { 0% { clip: rect(80px, 9999px, 100px, 0); } 5% { clip: rect(20px, 9999px, 70px, 0); } 10% { clip: rect(50px, 9999px, 30px, 0); } 15% { clip: rect(10px, 9999px, 90px, 0); } 20% { clip: rect(70px, 9999px, 40px, 0); } 25% { clip: rect(40px, 9999px, 60px, 0); } 30% { clip: rect(60px, 9999px, 20px, 0); } 35% { clip: rect(90px, 9999px, 5px, 0); } 40% { clip: rect(30px, 9999px, 70px, 0); } 45% { clip: rect(5px, 9999px, 95px, 0); } 50% { clip: rect(70px, 9999px, 10px, 0); } 55% { clip: rect(95px, 9999px, 20px, 0); } 60% { clip: rect(40px, 9999px, 80px, 0); } 65% { clip: rect(20px, 9999px, 90px, 0); } 70% { clip: rect(80px, 9999px, 30px, 0); } 75% { clip: rect(30px, 9999px, 80px, 0); } 80% { clip: rect(90px, 9999px, 40px, 0); } 85% { clip: rect(10px, 9999px, 70px, 0); } 90% { clip: rect(50px, 9999px, 60px, 0); } 95% { clip: rect(60px, 9999px, 50px, 0); } 100% { clip: rect(20px, 9999px, 80px, 0); } }
+
+        /* Subtle Glitch for Subtitle */
+        .subtitle-glitch { animation: subtle-glitch-anim 5s infinite step-end; }
+        @keyframes subtle-glitch-anim { 0% { transform: translate(0, 0); opacity: 1; } 2% { transform: translate(-2px, 2px); opacity: 0.8; } 4% { transform: translate(0, 0); opacity: 1; } 88% { transform: translate(0, 0); opacity: 1; } 90% { transform: translate(2px, -1px); opacity: 0.8; } 92% { transform: translate(0, 0); opacity: 1; } 100% { transform: translate(0, 0); opacity: 1; } }
+
+        /* Cyberpunk Card Style with animated border */
+        .cyber-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            position: relative;
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+        .cyber-card:hover {
+            transform: translateY(-8px);
+            background: rgba(25, 35, 65, 0.7);
+        }
+        .cyber-card::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: linear-gradient(45deg, var(--primary-magenta), var(--primary-cyan));
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .cyber-card:hover::before {
+            opacity: 1;
+            animation: flicker 1.5s infinite;
+        }
+        @keyframes flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        /* Release Card Styling */
+        .release-card {
+            background: var(--release-card-bg);
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 246, 255, 0.1);
+        }
+        .release-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px rgba(0, 246, 255, 0.4);
+        }
+
+
+        /* Cyberpunk Button with Clipped Corners */
+        .btn-cyber {
+            font-family: 'Orbitron', sans-serif;
+            border: 2px solid var(--primary-cyan);
+            color: var(--primary-cyan);
+            text-shadow: 0 0 5px var(--primary-cyan);
+            transition: all 0.3s ease;
+            position: relative;
+            background: transparent;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+        .btn-cyber:hover {
+            background: var(--primary-cyan);
+            color: var(--bg-color);
+            box-shadow: 0 0 20px var(--primary-cyan);
+            text-shadow: none;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0a14; }
+        ::-webkit-scrollbar-thumb { background: var(--primary-cyan); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-magenta); }
+        
+        html { scroll-behavior: smooth; }
+        
+        /* Language Selector Style */
+        .language-selector {
+            position: relative;
+        }
+        .language-selector select {
+            background-color: transparent;
+            color: #e0e0e0;
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Rajdhani', sans-serif;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+        .language-selector select:hover {
+            border-color: var(--primary-cyan);
+        }
+        .language-selector select option {
+            background-color: var(--bg-color);
+            color: #e0e0e0;
+        }
+
+        /* Toast Notification */
+        #toast-notification {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(15, 24, 51, 0.9);
+            color: var(--primary-cyan);
+            padding: 16px 24px;
+            border-radius: 8px;
+            border: 1px solid var(--primary-cyan);
+            box-shadow: 0 0 20px rgba(0, 246, 255, 0.3);
+            z-index: 2000;
+            transition: bottom 0.5s ease-in-out;
+            font-family: 'Orbitron', sans-serif;
+        }
+        #toast-notification.show {
+            bottom: 30px;
+        }
+
+        /* Markdown content styling */
+        .markdown-content {
+            line-height: 1.8;
+            padding: 2rem;
+            background: rgba(15, 24, 51, 0.8);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .markdown-content h1, .markdown-content h2 {
+            color: var(--primary-cyan);
+            font-family: 'Orbitron', sans-serif;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 0.3em;
+        }
+        .markdown-content p {
+            margin-bottom: 1em;
+        }
+        .markdown-content a {
+            color: var(--primary-magenta);
+            text-decoration: underline;
+        }
+        .markdown-content code {
+            background-color: rgba(0, 246, 255, 0.1);
+            color: var(--primary-green);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-md border-b border-[var(--border-color)]">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <a href="/" class="text-3xl font-bold font-orbitron text-neon-cyan tracking-widest">PeDitX<span class="text-neon-magenta">OS</span></a>
+                
+                <div class="flex items-center gap-4">
+                    <nav class="hidden md:flex md:space-x-4">
+                        <a href="#hero" data-translate-key="nav_home" class="text-gray-300 hover:text-neon-cyan px-3 py-2 rounded-md text-sm font-medium transition-colors">صفحه اصلی</a>
+                        <a href="#features" data-translate-key="nav_features" class="text-gray-300 hover:text-neon-cyan px-3 py-2 rounded-md text-sm font-medium transition-colors">ویژگی‌ها</a>
+                        <a href="#releases-list" data-translate-key="nav_releases" class="text-gray-300 hover:text-neon-cyan px-3 py-2 rounded-md text-sm font-medium transition-colors">انتشارات</a>
+                        <a href="#install" data-translate-key="nav_install" class="text-gray-300 hover:text-neon-cyan px-3 py-2 rounded-md text-sm font-medium transition-colors">نصب</a>
+                    </nav>
+
+                    <a href="https://t.me/peditx" target="_blank" class="text-gray-300 hover:text-neon-cyan text-2xl hidden md:block transition-colors" aria-label="Telegram Channel">
+                        <i class="fab fa-telegram"></i>
+                    </a>
+
+                    <div class="language-selector">
+                        <select id="language-switcher" aria-label="Select language">
+                            <option value="fa">فارسی (FA)</option>
+                            <option value="en">English (EN)</option>
+                            <option value="ru">Русский (RU)</option>
+                            <option value="zh">中文 (ZH)</option>
+                            <option value="tr">Türkçe (TR)</option>
+                            <option value="ar">العربية (AR)</option>
+                        </select>
+                    </div>
+
+                    <div class="md:hidden">
+                        <button id="mobile-menu-button" class="text-gray-300 hover:text-white focus:outline-none"><i class="fas fa-bars text-2xl"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#hero" data-translate-key="nav_home" class="nav-link-mobile text-gray-300 hover:bg-gray-700/50 block px-3 py-2 rounded-md text-base font-medium">صفحه اصلی</a>
+                <a href="#features" data-translate-key="nav_features" class="nav-link-mobile text-gray-300 hover:bg-gray-700/50 block px-3 py-2 rounded-md text-base font-medium">ویژگی‌ها</a>
+                <a href="#releases-list" data-translate-key="nav_releases" class="nav-link-mobile text-gray-300 hover:bg-gray-700/50 block px-3 py-2 rounded-md text-base font-medium">انتشارات</a>
+                <a href="#install" data-translate-key="nav_install" class="nav-link-mobile text-gray-300 hover:bg-gray-700/50 block px-3 py-2 rounded-md text-base font-medium">نصب</a>
+                <a href="https://t.me/peditx" target="_blank" class="nav-link-mobile text-gray-300 hover:bg-gray-700/50 block px-3 py-2 rounded-md text-base font-medium">
+                    <i class="fab fa-telegram-plane ml-2"></i><span data-translate-key="btn_telegram">کانال تلگرام</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Content Slot from the consuming page (index.astro or [...slug].astro) -->
+        <slot />
+        
+        {/* Render Static Sections only for the homepage (or where explicitly requested) */}
+        {showStaticContent && (
+            <div class="static-sections">
+                <section id="features" class="py-20 bg-black/30">
+                    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                        <div class="text-center mb-16">
+                            <h2 data-translate-key="features_title" class="text-4xl font-bold font-orbitron text-neon-cyan glitch" data-text="ویژگی‌ها">ویژگی‌ها</h2>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                            <div class="cyber-card p-8 text-center">
+                                <div class="text-5xl text-neon-magenta mb-4"><i class="fas fa-palette"></i></div>
+                                <h3 data-translate-key="feature1_title" class="text-xl font-bold font-orbitron mb-2">پوسته‌های فوق‌العاده</h3>
+                                <p data-translate-key="feature1_desc" class="text-gray-400">رابط کاربری LuCI خود را با پوسته‌های مدرن و جذاب ما متحول کنید.</p>
+                            </div>
+                            <div class="cyber-card p-8 text-center">
+                                <div class="text-5xl text-neon-magenta mb-4"><i class="fas fa-tools"></i></div>
+                                <h3 data-translate-key="feature2_title" class="text-xl font-bold font-orbitron mb-2">ابزارهای قدرتمند</h3>
+                                <p data-translate-key="feature2_desc" class="text-gray-400">نصب آسان Passwall, Tor, SSHPlus و... فقط با یک کلیک.</p>
+                            </div>
+                            <div class="cyber-card p-8 text-center">
+                                <div class="text-5xl text-neon-magenta mb-4"><i class="fas fa-tachometer-alt"></i></div>
+                                <h3 data-translate-key="feature3_title" class="text-xl font-bold font-orbitron mb-2">بهینه‌سازی سیستم</h3>
+                                <p data-translate-key="feature3_desc" class="text-gray-400">عملکرد CPU، شبکه و حافظه را برای حداکثر کارایی بهینه کنید.</p>
+                            </div>
+                            <div class="cyber-card p-8 text-center">
+                                <div class="text-5xl text-neon-magenta mb-4"><i class="fas fa-terminal"></i></div>
+                                <h3 data-translate-key="feature4_title" class="text-xl font-bold font-orbitron mb-2">ترمینال تحت وب</h3>
+                                <p data-translate-key="feature4_desc" class="text-gray-400">دسترسی مستقیم به خط فرمان روتر از طریق رابط کاربری وب.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="repo" class="py-20 bg-black/30">
+                    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                        <div class="cyber-card p-10 md:p-16 text-center max-w-4xl mx-auto">
+                            <h2 data-translate-key="repo_title" class="text-4xl font-bold font-orbitron text-neon-cyan mb-4 glitch" data-text="ریپازیتوری بسته‌ها">ریپازیتوری بسته‌ها</h2>
+                            <p data-translate-key="repo_desc" class="text-lg text-gray-300 mb-8">
+                                به ریپازیتوری اختصاصی PeDitXOS دسترسی پیدا کنید و آخرین نسخه‌های پکیج‌ها را دریافت نمایید.
+                            </p>
+                            <a href="http://repo.peditxdl.ir" target="_blank" class="btn-cyber py-4 px-10 text-lg uppercase tracking-wider inline-block">
+                                <span data-translate-key="btn_enter_repo">ورود به ریپازیتوری</span>
+                                <i class="fas fa-external-link-alt ml-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="install" class="py-20 bg-black/30">
+                    <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                        <h2 data-translate-key="install_title" class="text-4xl font-bold font-orbitron text-neon-cyan mb-4 glitch" data-text="نصب سریع">نصب سریع</h2>
+                        <p data-translate-key="install_desc" class="text-lg text-gray-400 max-w-3xl mx-auto mb-8">
+                            کد زیر را در ترمینال SSH روتر خود کپی و اجرا کنید.
+                        </p>
+                        <div class="bg-black/80 border-2 border-dashed border-[var(--border-color)] p-4 max-w-3xl mx-auto font-mono text-left text-lg text-neon-green relative">
+                            <button id="copy-button" class="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors" data-translate-key="copy_tooltip" title="کپی کردن">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <code id="install-command">sh -c "$(curl -sL https://peditxos.ir/install)"</code>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="compile" class="py-20 bg-black/30">
+                    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="cyber-card p-10 md:p-16 text-center max-w-4xl mx-auto">
+                        <h2 data-translate-key="compile_title" class="text-4xl font-bold font-orbitron text-neon-cyan mb-4 glitch" data-text="کامپایل">کامپایل</h2>
+                        <p data-translate-key="compile_desc" class="text-lg text-gray-300 mb-8">
+                            با زدن چند دکمه نسخه برگرفته از نسخه های رسمی Openwrt را با افزونه های رسمی PeDitXOS بسازید و دانلود و نصب کنید.
+                        </p>
+                        <a href="https://firmware.peditxos.ir" class="btn-cyber py-4 px-10 text-lg uppercase tracking-wider inline-block">
+                            <span data-translate-key="btn_start_compile">شروع کامپایل</span>
+                        </a>
+                    </div>
+                    </div>
+                </section>
+            </div>
+        )}
+    </main>
+
+    <footer class="bg-black/50 border-t border-[var(--border-color)] py-8">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-400">
+            <div class="flex justify-center space-x-6 space-x-reverse mb-4">
+                <a href="https://t.me/peditx" target="_blank" class="text-2xl hover:text-neon-cyan transition-colors"><i class="fab fa-telegram"></i></a>
+                <a href="https://github.com/peditx" target="_blank" class="text-2xl hover:text-neon-cyan transition-colors"><i class="fab fa-github"></i></a>
+            </div>
+            <p data-translate-key="footer_copyright">&copy; 2025 PeDitXOS. تمام حقوق محفوظ است.</p>
+        </div>
+    </footer>
+    
+    <div id="toast-notification"></div>
+
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Translation Data (User Provided) ---
+            const translations = {
+                en: {
+                    page_title: "PeDitXOS - Hack, Build, Reign",
+                    meta_description: "PeDitXOS is an OpenWrt-based OS that simplifies router management with one-command Passwall installation, advanced network tweaks, and a beautiful graphical interface.",
+                    nav_home: "Home", nav_features: "Features", nav_releases: "Releases", nav_install: "Install",
+                    hero_subtitle: "Transform your OpenWrt OS into a powerful and beautiful management console.",
+                    btn_start_install: "Start Installation", btn_telegram: "Telegram Channel",
+                    features_title: "Features", feature1_title: "Awesome Themes", feature1_desc: "Transform your LuCI interface with our modern and attractive themes.",
+                    feature2_title: "Powerful Tools", feature2_desc: "Easily install Passwall, Tor, SSHPlus, and more with just one click.",
+                    feature3_title: "System Optimization", feature3_desc: "Optimize CPU, network, and memory performance for maximum efficiency.",
+                    feature4_title: "Web Terminal", feature4_desc: "Get direct access to the router's command line via the web interface.",
+                    repo_title: "Package Repository", repo_desc: "Access the dedicated PeDitXOS repository and get the latest versions of packages.",
+                    btn_enter_repo: "Enter Repository",
+                    install_title: "Quick Install", install_desc: "Copy and run the code below in your router's SSH terminal.",
+                    copy_tooltip: "Copy to clipboard",
+                    compile_title: "Compile", compile_desc: "Build, download, and install your own version of OpenWrt with official PeDitXOS plugins with just a few clicks.",
+                    btn_start_compile: "Start Compiling", footer_copyright: "© 2025 PeDitXOS. All rights reserved.",
+                    copy_success: "Install command copied!", copy_error: "Error copying command."
+                },
+                fa: {
+                    page_title: "PeDitXOS - هک کن، بساز، فرمانروایی کن",
+                    meta_description: "PeDitXOS یک سیستم‌عامل قدرتمند مبتنی بر OpenWrt است که با نصب Passwall با یک دستور، تویک‌های پیشرفته شبکه و رابط کاربری زیبا، مدیریت روتر را ساده می‌کند.",
+                    nav_home: "صفحه اصلی", nav_features: "ویژگی‌ها", nav_releases: "انتشارات", nav_install: "نصب",
+                    hero_subtitle: "سیستم‌عامل OpenWrt خود را به یک کنسول مدیریتی قدرتمند و زیبا تبدیل کنید.",
+                    btn_start_install: "شروع نصب", btn_telegram: "کانال تلگرام",
+                    features_title: "ویژگی‌ها", feature1_title: "پوسته‌های فوق‌العاده", feature1_desc: "رابط کاربری LuCI خود را با پوسته‌های مدرن و جذاب ما متحول کنید.",
+                    feature2_title: "ابزارهای قدرتمند", feature2_desc: "نصب آسان Passwall, Tor, SSHPlus و... فقط با یک کلیک.",
+                    feature3_title: "بهینه‌سازی سیستم", feature3_desc: "عملکرد CPU، شبکه و حافظه را برای حداکثر کارایی بهینه کنید.",
+                    feature4_title: "ترمینال تحت وب", feature4_desc: "دسترسی مستقیم به خط فرمان روتر از طریق رابط کاربری وب.",
+                    repo_title: "ریپازیتوری بسته‌ها", repo_desc: "به ریپازیتوری اختصاصی PeDitXOS دسترسی پیدا کنید و آخرین نسخه‌های پکیج‌ها را دریافت نمایید.",
+                    btn_enter_repo: "ورود به ریپازیتوری",
+                    install_title: "نصب سریع", install_desc: "کد زیر را در ترمینال SSH روتر خود کپی و اجرا کنید.",
+                    copy_tooltip: "کپی کردن",
+                    compile_title: "کامپایل", compile_desc: "با زدن چند دکمه نسخه برگرفته از نسخه های رسمی Openwrt را با افزونه های رسمی PeDitXOS بسازید و دانلود و نصب کنید.",
+                    btn_start_compile: "شروع کامپایل", footer_copyright: "© 2025 PeDitXOS. تمام حقوق محفوظ است.",
+                    copy_success: "دستور نصب کپی شد!", copy_error: "خطا در کپی کردن دستور."
+                },
+                // ... (Rest of the languages)
+                ru: {
+                    page_title: "PeDitXOS - Взломай, Создай, Властвуй", meta_description: "PeDitXOS — это ОС на базе OpenWrt, которая упрощает управление маршрутизатором благодаря установке Passwall одной командой, расширенным настройкам сети и красивому графическому интерфейсу.",
+                    nav_home: "Главная", nav_features: "Особенности", nav_releases: "Релизы", nav_install: "Установка",
+                    hero_subtitle: "Превратите вашу ОС OpenWrt в мощную и красивую консоль управления.", btn_start_install: "Начать установку", btn_telegram: "Канал в Telegram",
+                    features_title: "Особенности", feature1_title: "Потрясающие темы", feature1_desc: "Преобразите свой интерфейс LuCI с помощью наших современных и привлекательных тем.",
+                    feature2_title: "Мощные инструменты", feature2_desc: "Легко устанавливайте Passwall, Tor, SSHPlus и многое другое одним щелчком мыши.",
+                    feature3_title: "Оптимизация системы", feature3_desc: "Оптимизируйте производительность ЦП, сети и памяти для максимальной эффективности.",
+                    feature4_title: "Веб-терминал", feature4_desc: "Получите прямой доступ к командной строке маршрутизатора через веб-интерфейс.",
+                    repo_title: "Репозиторий пакетов", repo_desc: "Получите доступ к выделенному репозиторию PeDitXOS и последним версиям пакетов.",
+                    btn_enter_repo: "Войти в репозиторий", install_title: "Быстрая установка", install_desc: "Скопируйте и выполните приведенный ниже код в SSH-терминале вашего маршрутизатора.",
+                    copy_tooltip: "Скопировать в буфер обмена", compile_title: "Компиляция", compile_desc: "Соберите, загрузите и установите свою собственную версию OpenWrt с официальными плагинами PeDitXOS всего за несколько кликов.",
+                    btn_start_compile: "Начать компиляцию", footer_copyright: "© 2025 PeDitXOS. Все права защищены.",
+                    copy_success: "Команда установки скопирована!", copy_error: "Ошибка при копировании команды."
+                },
+                zh: {
+                    page_title: "PeDitXOS - 破解、构建、统治", meta_description: "PeDitXOS 是一款基于 OpenWrt 的操作系统，通过一键命令安装 Passwall、高级网络调整和精美的图形界面来简化路由器管理。",
+                    nav_home: "首页", nav_features: "功能", nav_releases: "发布", nav_install: "安装",
+                    hero_subtitle: "将您的 OpenWrt 操作系统转变为功能强大且美观的管理控制台。", btn_start_install: "开始安装", btn_telegram: "Telegram 频道",
+                    features_title: "功能特色", feature1_title: "精美主题", feature1_desc: "使用我们现代而吸引人的主题，改造您的 LuCI 界面。",
+                    feature2_title: "强大工具", feature2_desc: "只需一键即可轻松安装 Passwall、Tor、SSHPlus 等工具。",
+                    feature3_title: "系统优化", feature3_desc: "优化 CPU、网络和内存性能，实现最高效率。",
+                    feature4_title: "网页终端", feature4_desc: "通过网页界面直接访问路由器的命令行。",
+                    repo_title: "软件包存储库", repo_desc: "访问专用的 PeDitXOS 软件源，获取最新版本的软件包。",
+                    btn_enter_repo: "进入软件源", install_title: "快速安装", install_desc: "在路由器的 SSH 终端中复制并运行以下代码。",
+                    copy_tooltip: "复制到剪贴板", compile_title: "编译", compile_desc: "只需点击几下，即可使用官方 PeDitXOS 插件构建、下载并安装您自己的 OpenWrt 版本。",
+                    btn_start_compile: "开始编译", footer_copyright: "© 2025 PeDitXOS. 版权所有。",
+                    copy_success: "安装命令已复制！", copy_error: "复制命令时出错。"
+                },
+                tr: {
+                    page_title: "PeDitXOS - Hackle, İnşa Et, Hükmet", meta_description: "PeDitXOS, tek komutla Passwall kurulumu, gelişmiş ağ ayarları ve güzel bir grafik arayüzü ile yönlendirici yönetimini basitleştiren OpenWrt tabanlı bir işletim sistemidir.",
+                    nav_home: "Anasayfa", nav_features: "Özellikler", nav_releases: "Yayınlar", nav_install: "Kurulum",
+                    hero_subtitle: "OpenWrt işletim sisteminizi güçlü ve güzel bir yönetim konsoluna dönüştürün.", btn_start_install: "Kuruluma Başla", btn_telegram: "Telegram Kanalı",
+                    features_title: "Özellikler", feature1_title: "Harika Temalar", feature1_desc: "LuCI arayüzünüzü modern ve çekici temalarımızla dönüştürün.",
+                    feature2_title: "Güçlü Araçlar", feature2_desc: "Passwall, Tor, SSHPlus ve daha fazlasını tek bir tıklama ile kolayca kurun.",
+                    feature3_title: "Sistem Optimizasyonu", feature3_desc: "Maksimum verimlilik için CPU, ağ ve bellek performansını optimize edin.",
+                    feature4_title: "Web Terminali", feature4_desc: "Web arayüzü üzerinden yönlendiricinin komut satırına doğrudan erişin.",
+                    repo_title: "Paket Deposu", repo_desc: "Özel PeDitXOS deposuna erişin ve paketlerin en son sürümlerini edinin.",
+                    btn_enter_repo: "Depoya Gir", install_title: "Hızlı Kurulum", install_desc: "Aşağıdaki kodu yönlendiricinizin SSH terminaline kopyalayıp çalıştırın.",
+                    copy_tooltip: "Panoya kopyala", compile_title: "Derleme", compile_desc: "Sadece birkaç tıklama ile resmi PeDitXOS eklentileriyle kendi OpenWrt sürümünüzü oluşturun, indirin ve kurun.",
+                    btn_start_compile: "Derlemeye Başla", footer_copyright: "© 2025 PeDitXOS. Tüm hakları saklıdır.",
+                    copy_success: "Kurulum komutu kopyalandı!", copy_error: "Komut kopyalanırken hata oluştu."
+                },
+                ar: {
+                    page_title: "PeDitXOS - اخترق، ابنِ، سيطر", meta_description: "PeDitXOS هو نظام تشغيل مبني على OpenWrt يبسط إدارة جهاز التوجيه من خلال تثبيت Passwall بأمر واحد، وتعديلات شبكة متقدمة، وواجهة رسومية جميلة.",
+                    nav_home: "الرئيسية", nav_features: "الميزات", nav_releases: "الإصدارات", nav_install: "التثبيت",
+                    hero_subtitle: "حوّل نظام تشغيل OpenWrt الخاص بك إلى وحدة تحكم إدارية قوية وجميلة.", btn_start_install: "بدء التثبيت", btn_telegram: "قناة تيليجرام",
+                    features_title: "الميزات", feature1_title: "ثيمات رائعة", feature1_desc: "غيّر واجهة LuCI الخاصة بك بثيماتنا العصرية والجذابة.",
+                    feature2_title: "أدوات قوية", feature2_desc: "قم بتثبيت Passwall و Tor و SSHPlus والمزيد بسهولة بنقرة واحدة فقط.",
+                    feature3_title: "تحسين النظام", feature3_desc: "حسّن أداء وحدة المعالجة المركزية والشبكة والذاكرة لتحقيق أقصى قدر من الكفاءة.",
+                    feature4_title: "طرفية الويب", feature4_desc: "احصل على وصول مباشر إلى سطر أوامر جهاز التوجيه عبر واجهة الويب.",
+                    repo_title: "مستودع الحزم", repo_desc: "ادخل إلى مستودع PeDitXOS المخصص واحصل على أحدث إصدارات الحزم.",
+                    btn_enter_repo: "الدخول إلى المستودع", install_title: "تثبيت سريع", install_desc: "انسخ وشغّل الكود أدناه في طرفية SSH لجهاز التوجيه الخاص بك.",
+                    copy_tooltip: "نسخ إلى الحافظة", compile_title: "التجميع", compile_desc: "ببضع نقرات فقط، قم ببناء وتنزيل وتثبيت نسختك الخاصة من OpenWrt مع إضافات PeDitXOS الرسمية.",
+                    btn_start_compile: "بدء التجميع", footer_copyright: "© 2025 PeDitXOS. جميع الحقوق محفوظة.",
+                    copy_success: "تم نسخ أمر التثبيت!", copy_error: "خطأ في نسخ الأمر."
+                }
+            };
+
+            const languageSwitcher = document.getElementById('language-switcher');
+            const htmlEl = document.documentElement;
+
+            // --- Set Language Function ---
+            const setLanguage = (lang) => {
+                const isRtl = ['fa', 'ar'].includes(lang);
+                htmlEl.setAttribute('lang', lang);
+                htmlEl.setAttribute('dir', isRtl ? 'rtl' : 'ltr');
+                
+                // Update text content
+                document.querySelectorAll('[data-translate-key]').forEach(element => {
+                    const key = element.getAttribute('data-translate-key');
+                    const translation = translations[lang][key];
+                    if (translation) {
+                        if (element.tagName === 'BUTTON' || element.getAttribute('title')) {
+                            element.setAttribute('title', translation);
+                        } else if (element.tagName === 'A' && element.querySelector('span')) {
+                            // Target span inside A (like Telegram button)
+                            element.querySelector('span').innerText = translation;
+                        } else {
+                            element.innerText = translation;
+                        }
+                        
+                        if (element.classList.contains('glitch')) {
+                            element.setAttribute('data-text', translation);
+                        }
+                    }
+                });
+                
+                // Update meta tags content
+                document.querySelectorAll('[data-translate-key-content]').forEach(element => {
+                    const key = element.getAttribute('data-translate-key-content');
+                    const translation = translations[lang][key];
+                    if (translation) {
+                        element.setAttribute('content', translation);
+                    }
+                });
+
+                // Update page title in browser tab
+                document.title = translations[lang].page_title;
+                
+                // Save preference
+                localStorage.setItem('peditxos-lang', lang);
+                languageSwitcher.value = lang;
+            };
+
+            // --- Event Listeners ---
+            languageSwitcher.addEventListener('change', (event) => {
+                setLanguage(event.target.value);
+            });
+
+            // --- Initial Load ---
+            const savedLang = localStorage.getItem('peditxos-lang') || 'fa';
+            setLanguage(savedLang);
+
+            // --- Mobile Menu Toggle ---
+            document.getElementById('mobile-menu-button').addEventListener('click', () => {
+                document.getElementById('mobile-menu').classList.toggle('hidden');
+            });
+            
+            // Close mobile menu on link click
+            document.querySelectorAll('.nav-link-mobile').forEach(link => {
+                link.addEventListener('click', () => {
+                    document.getElementById('mobile-menu').classList.add('hidden');
+                });
+            });
+
+            // --- Custom Toast Notification ---
+            function showToast(message, isError = false) {
+                const toast = document.getElementById('toast-notification');
+                toast.textContent = message;
+                toast.style.color = isError ? 'var(--primary-magenta)' : 'var(--primary-cyan)';
+                toast.style.borderColor = isError ? 'var(--primary-magenta)' : 'var(--primary-cyan)';
+                
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+
+            // --- Copy to Clipboard ---
+            const copyButton = document.getElementById('copy-button');
+            if (copyButton) {
+                copyButton.addEventListener('click', () => {
+                    const commandText = document.getElementById('install-command').innerText;
+                    const currentLang = document.documentElement.lang || 'fa';
+                    const messages = translations[currentLang];
+                    
+                    navigator.clipboard.writeText(commandText).then(() => {
+                        showToast(messages.copy_success);
+                    }).catch(err => {
+                        console.error('Failed to copy text: ', err);
+                        showToast(messages.copy_error, true);
+                    });
+                });
+            }
+
+            // --- Particles.js Configuration ---
+            if (typeof particlesJS !== 'undefined') {
+                particlesJS('particles-js', {
+                    "particles": {
+                        "number": { "value": 60, "density": { "enable": true, "value_area": 800 } },
+                        "color": { "value": "#ffffff" },
+                        "shape": { "type": "edge", "stroke": { "width": 0, "color": "#000000" } },
+                        "opacity": { "value": 0.4, "random": true, "anim": { "enable": true, "speed": 1, "opacity_min": 0.1, "sync": false } },
+                        "size": { "value": 2, "random": true, "anim": { "enable": false } },
+                        "line_linked": { "enable": true, "distance": 150, "color": "#ff00c1", "opacity": 0.2, "width": 1 },
+                        "move": { "enable": true, "speed": 3, "direction": "none", "random": true, "straight": false, "out_mode": "out" }
+                    },
+                    "interactivity": {
+                        "detect_on": "canvas",
+                        "events": { "onhover": { "enable": true, "mode": "repulse" }, "onclick": { "enable": true, "mode": "push" }, "resize": true },
+                        "modes": { "repulse": { "distance": 100 }, "push": { "particles_nb": 4 } }
+                    },
+                    "retina_detect": true
+                });
+            } else {
+                console.error("particlesJS is not defined. Check script loading.");
+            }
+        });
+    </script>
+
+</body>
+</html>
