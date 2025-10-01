@@ -1,84 +1,85 @@
 ---
+import CyberLayout from '../layouts/CyberLayout.astro';
 import { getCollection } from "astro:content";
-import CyberLayout from "../layouts/CyberLayout.astro";
 
-// Fetch all releases and sort them by date descending
-const allReleases = (await getCollection("releases"))
-  .sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+// 1. Fetch all releases from the 'releases' content collection
+const allReleases = await getCollection('releases');
 
-// Format date utility
-const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('fa-IR', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-    }).format(date);
-}
+// 2. Sort releases by publication date (newest first)
+const sortedReleases = allReleases.sort((a, b) => 
+  b.data.pubDate.getTime() - a.data.pubDate.getTime()
+);
 
-// Map releases to be passed to the layout if needed, or handle rendering here.
-// We will render the dynamic list right in the body below the static sections.
+// 3. Define the maximum width for content inside the layout
+const MAX_CONTENT_WIDTH = "max-w-4xl"; // Ensures readability on very wide screens
 ---
 
-<CyberLayout title="PeDitXOS - هک کن، بساز، فرمانروایی کن" showStaticContent={true}>
-    <!-- HERO SECTION (Part of the initial design) -->
-    <section id="hero" class="hero-bg min-h-screen flex items-center justify-center pt-20">
-        <div id="particles-js"></div>
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-            <h1 class="text-5xl md:text-7xl lg:text-8xl font-black font-orbitron glitch text-neon-cyan" data-text="PeDitXOS">
-                PeDitX<span class="text-neon-magenta">OS</span>
-            </h1>
-            <p data-translate-key="hero_subtitle" class="mt-8 text-lg md:text-2xl max-w-3xl mx-auto text-gray-300 subtitle-glitch">
-                سیستم‌عامل OpenWrt خود را به یک کنسول مدیریتی قدرتمند و زیبا تبدیل کنید.
-            </p>
-            <div class="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
-                <a href="#install" data-translate-key="btn_start_install" class="btn-cyber py-4 px-10 text-lg uppercase tracking-wider w-full sm:w-auto">
-                    شروع نصب
-                </a>
-                <a href="https://firmware.peditxos.ir" class="btn-cyber !border-[var(--primary-magenta)] !text-[var(--primary-magenta)] hover:!bg-[var(--primary-magenta)] hover:!text-[var(--bg-color)] hover:!shadow-[var(--primary-magenta)] py-4 px-10 text-lg uppercase tracking-wider w-full sm:w-auto">
-                    <span data-translate-key="btn_start_compile">شروع کامپایل</span>
-                </a>
-            </div>
-        </div>
-    </section>
+<CyberLayout title="PeDitXOS Releases">
+  <div class={`mx-auto px-4 pt-16 pb-20 ${MAX_CONTENT_WIDTH}`}>
+    
+    <!-- Title Section: Displayed only if there are releases or if user is prompted -->
+    <h1 class="text-4xl md:text-5xl font-black font-orbitron text-neon-cyan text-center mt-12 mb-16 uppercase tracking-widest">
+      SYSTEM_LOG: ALL RELEASES
+    </h1>
 
-    <!-- RELEASES LIST SECTION (Your Blog/Homepage Content) -->
-    <section id="releases-list" class="py-20 bg-black/30">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 data-translate-key="nav_releases" class="text-4xl font-bold font-orbitron text-neon-cyan glitch" data-text="انتشارات">آخرین انتشارات</h2>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {allReleases.length === 0 ? (
-                    <p class="text-center text-gray-500 md:col-span-3">
-                        هنوز محتوایی در بخش Releases منتشر نشده است.
-                    </p>
-                ) : (
-                    allReleases.map((release) => (
-                        <a href={`/releases/${release.slug}`} class="release-card p-6 rounded-lg block hover:no-underline">
-                            {release.data.coverImage && (
-                                <img 
-                                    src={release.data.coverImage} 
-                                    alt={release.data.title} 
-                                    class="w-full h-40 object-cover rounded-md mb-4 border border-[var(--primary-magenta)]/50"
-                                />
-                            )}
-                            <p class="text-sm text-neon-magenta mb-2 font-orbitron">
-                                {formatDate(release.data.pubDate)}
-                            </p>
-                            <h3 class="text-2xl font-bold text-neon-cyan mb-2 hover:underline">
-                                {release.data.title}
-                            </h3>
-                            <p class="text-gray-400">
-                                {release.data.description}
-                            </p>
-                            <span class="mt-4 inline-block text-[var(--primary-green)] text-sm">
-                                <i class="fas fa-arrow-left ml-2"></i> ادامه مطلب
-                            </span>
-                        </a>
-                    ))
-                )}
-            </div>
+    <!-- Content Area: List of Releases -->
+    <div class="space-y-10">
+      
+      <!-- Conditional rendering: Check if any releases exist -->
+      {sortedReleases.length > 0 ? (
+        
+        <!-- Loop through all sorted posts -->
+        sortedReleases.map((release) => (
+          
+          <a href={`/releases/${release.slug}`} class="block transition duration-300 ease-in-out">
+            <article class="cyber-card p-6 md:p-8 rounded-lg">
+              
+              <!-- Release Metadata -->
+              <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-[var(--border-color)] pb-3 mb-4">
+                
+                <h2 class="text-2xl md:text-3xl font-bold font-orbitron text-neon-magenta hover:text-neon-cyan transition-colors leading-snug mb-2 md:mb-0">
+                  {release.data.title}
+                </h2>
+                
+                <time class="text-sm text-gray-500 font-rajdhani tracking-wider whitespace-nowrap">
+                  {release.data.pubDate.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </time>
+              </div>
+
+              <!-- Release Description -->
+              <p class="text-gray-300 mb-4 text-lg">
+                {release.data.description}
+              </p>
+
+              <!-- Read More Link -->
+              <div class="flex items-center justify-end">
+                <span class="text-neon-cyan hover:text-white transition-colors text-lg font-orbitron tracking-wider">
+                  Read More 
+                  <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                </span>
+              </div>
+            </article>
+          </a>
+        ))
+        
+      ) : (
+        <!-- Message displayed if no content is published yet -->
+        <div class="text-center p-10 mt-12 cyber-card mx-auto">
+          <p class="text-2xl text-gray-400 mb-4 font-rajdhani">
+            No releases published yet. Add content via the CMS panel!
+          </p>
+          <a href="/admin/" class="btn-cyber py-3 px-6 text-base uppercase tracking-wider inline-block">
+            Access Content Manager
+          </a>
         </div>
-    </section>
+      )}
+
+    </div>
+  </div>
 </CyberLayout>
