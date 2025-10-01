@@ -12,7 +12,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -25,11 +25,14 @@ jobs:
         run: npm run build
 
       # Deploy job to GitHub Pages
+      # تغییر مسیر دیپلو: به جای gh-pages، مستقیم به main می فرستد
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         if: github.ref == 'refs/heads/main'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
-          # Set the destination branch for the built artifacts
-          publish_branch: gh-pages
+          # هدف را به شاخه اصلی (main) تغییر می دهیم
+          publish_branch: main
+          # این تنظیم اجازه می دهد که فایل های قدیمی حذف و فقط محتوای dist باقی بماند
+          force_orphan: true 
