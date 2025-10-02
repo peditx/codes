@@ -19,11 +19,9 @@ collections:
       - {label: "Description", name: "description", widget: "string"}
       - {label: "Publish Date", name: "pubDate", widget: "datetime"}
       - {label: "Cover Image (Optional)", name: "coverImage", widget: "image", required: false}
-      - label: "Script Content (Optional)"
+      - label: "Script Content"
         name: "scriptContent"
-        widget: "code"
+        widget: "monaco"
         required: false
         default_language: "shell"
-        allow_language_select: true
-        hint: "Paste the content of your shell script here. This allows for direct editing."
       - {label: "Body", name: "body", widget: "markdown"}
