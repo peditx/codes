@@ -82,11 +82,8 @@
     <div id="toast" class="toast"></div>
 
     <script>
-        // --- CONFIGURATION ---
-        const ADMIN_USERNAME = "your_username_here";
-        const ADMIN_PASSWORD = "your_password_here";
-        const GITHUB_TOKEN   = "paste_your_github_pat_here_(starts_with_ghp)";
-        // --- END OF CONFIGURATION ---
+        // --- NO SECRETS HERE ---
+        // All configuration is now fetched securely from a serverless function.
 
         const GITHUB_CONFIG = { 
             owner: 'PeDitXOs', 
@@ -95,7 +92,6 @@
             paths: { 
                 json: 'services/services.json', 
                 sh: 'services/services_runner.sh',
-                // You can change this path if you want to store icons elsewhere
                 icons: '.files/icon/store_icons' 
             }
         };
@@ -122,22 +118,60 @@
         let staticServices = [];
         let hasChanges = false;
         let githubAccessToken = null;
+        let APP_SECRETS = {};
 
-        // --- Authentication & GitHub API Logic ---
-        loginForm.addEventListener('submit', (e) => {
+        // --- NEW: Securely fetch secrets from the Cloudflare Function ---
+        const fetchSecrets = async () => {
+            try {
+                const response = await fetch('/api/secrets');
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Could not fetch configuration. Server responded with: ${errorText}`);
+                }
+                APP_SECRETS = await response.json();
+                if (APP_SECRETS.error) {
+                    throw new Error(APP_SECRETS.error);
+                }
+            } catch (error) {
+                showToast(error.message, true);
+                console.error(error);
+                return false;
+            }
+            return true;
+        };
+        
+        // --- UPDATED: Authentication & GitHub API Logic ---
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const loginButton = loginForm.querySelector('button[type="submit"]');
+            loginButton.disabled = true;
+            loginButton.innerHTML = `<svg class="animate-spin h-5 w-5 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+
+            const secretsLoaded = await fetchSecrets();
+            if (!secretsLoaded) {
+                loginButton.disabled = false;
+                loginButton.textContent = 'Login';
+                return;
+            }
+
             const user = document.getElementById('username').value;
             const pass = document.getElementById('password').value;
-            if (user === ADMIN_USERNAME && pass === ADMIN_PASSWORD) {
-                if (!GITHUB_TOKEN || !GITHUB_TOKEN.startsWith('ghp_')) {
-                    showToast("Error: GitHub Token is invalid in the config!", true); return;
+
+            if (user === APP_SECRETS.ADMIN_USERNAME && pass === APP_SECRETS.ADMIN_PASSWORD) {
+                if (!APP_SECRETS.ACCESS_TOKEN || !APP_SECRETS.ACCESS_TOKEN.startsWith('ghp_')) {
+                    showToast("Error: Access Token from server is invalid!", true);
+                    loginButton.disabled = false;
+                    loginButton.textContent = 'Login';
+                    return;
                 }
-                githubAccessToken = GITHUB_TOKEN;
+                githubAccessToken = APP_SECRETS.ACCESS_TOKEN;
                 loginModal.classList.add('hidden');
                 mainContent.classList.remove('hidden');
                 loadServicesBtn.click();
             } else {
                 showToast("Invalid credentials", true);
+                loginButton.disabled = false;
+                loginButton.textContent = 'Login';
             }
         });
 
@@ -150,7 +184,6 @@
                     const errorData = await response.json();
                     throw new Error(`GitHub API Error (${response.status}): ${errorData.message || 'Unknown error'}`);
                 }
-                // Handle 204 No Content for deletions
                 if (response.status === 204) return { success: true }; 
                 return response.json();
             } catch (error) {
@@ -184,7 +217,7 @@
         };
         const updateSaveChangesBtn = () => { hasChanges = true; saveChangesBtn.disabled = false; };
 
-        // --- Service Management Logic (unchanged) ---
+        // --- Service Management Logic ---
         const renderServiceList = () => {
             serviceList.innerHTML = '';
             services.forEach((service, index) => {
