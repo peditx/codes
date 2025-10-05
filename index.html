@@ -85,13 +85,14 @@
         // --- NO SECRETS HERE ---
         // All configuration is now fetched securely from a serverless function.
 
+        // --- CORRECTED CONFIGURATION ---
         const GITHUB_CONFIG = { 
-            owner: 'PeDitXOs', 
+            owner: 'peditx', // <-- CORRECTED
             repo: 'PeDitXOs', 
             branch: 'main', 
             paths: { 
                 json: 'services/services.json', 
-                sh: 'services/services_runner.sh',
+                sh: 'services/service_runner.sh', // <-- CORRECTED runner name
                 icons: '.files/icon/store_icons' 
             }
         };
@@ -340,3 +341,4 @@
     </script>
 </body>
 </html>
+
