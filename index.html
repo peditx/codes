@@ -202,9 +202,20 @@
             return { content: atob(data.content), sha: data.sha };
         };
 
-        const updateFile = async (filePath, content, sha, commitMessage) => {
+        // --- CORRECTED: updateFile now handles already-encoded content ---
+        const updateFile = async (filePath, content, sha, commitMessage, isBase64 = false) => {
             const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${filePath}`;
-            return await apiRequest(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: commitMessage, content: btoa(content), sha: sha, branch: GITHUB_CONFIG.branch }) });
+            const body = {
+                message: commitMessage,
+                content: isBase64 ? content : btoa(content),
+                sha: sha,
+                branch: GITHUB_CONFIG.branch
+            };
+            return await apiRequest(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
         };
 
         const showToast = (message, isError = false) => {
@@ -307,11 +318,11 @@
                                      service.script_url = urlMatch[1];
                                 } else {
                                     console.warn(`Could not parse script_url for service: ${service.name}.`);
-                                    service.script_url = ''; // Prevent crashes
+                                    service.script_url = ''; 
                                 }
                             } else {
                                 console.warn(`Could not find URL variable for service: ${service.name}.`);
-                                service.script_url = ''; // Prevent crashes
+                                service.script_url = ''; 
                             }
                         } else {
                             service.type = 'commands';
@@ -504,7 +515,7 @@
                         <img id="image-preview" class="max-h-48 mx-auto rounded-lg mb-4">
                     </div>
                     <div id="upload-result" class="hidden">
-                        <label class="block text-sm font-medium text-gray-300">Image URL:</label>
+                        <label class="block text-sm font-medium text-gray-300">Image URL (CDN Link):</label>
                         <div class="flex items-center gap-2 mt-1">
                             <input type="text" id="image-url" readonly class="w-full p-2 bg-gray-700 rounded border-gray-600">
                             <button id="copy-url-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg">Copy</button>
@@ -561,10 +572,12 @@
                     document.getElementById('upload-progress').classList.remove('hidden');
                     uploadBtn.disabled = true;
 
-                    const result = await updateFile(filePath, base64Content, null, commitMessage);
+                    // --- CORRECTED: Calling updateFile with isBase64 = true ---
+                    const result = await updateFile(filePath, base64Content, null, commitMessage, true);
 
-                    if (result && result.content && result.content.download_url) {
-                        document.getElementById('image-url').value = result.content.download_url;
+                    if (result && result.content) {
+                        const jsdelivrUrl = `https://cdn.jsdelivr.net/gh/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}@${GITHUB_CONFIG.branch}/${filePath}`;
+                        document.getElementById('image-url').value = jsdelivrUrl;
                         document.getElementById('upload-result').classList.remove('hidden');
                         showToast("Upload successful!", false);
                     } else {
