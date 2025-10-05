@@ -13,9 +13,12 @@
         .toast { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 60; left: 50%; bottom: 30px; opacity: 0; transition: opacity 0.5s, visibility 0.5s; }
         .toast.show { visibility: visible; opacity: 1; }
         .modal-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.7); z-index: 50; backdrop-filter: blur(4px); }
-        .service-card { transition: transform 0.2s ease-in-out; }
+        .service-card { transition: all 0.2s ease-in-out; }
         .file-drop-area { border: 2px dashed #4a5568; }
         .file-drop-area.highlight { border-color: #4299e1; background-color: #2c5282; }
+        #serviceList.reorder-mode .service-card {
+            box-shadow: 0 0 0 2px #4299e1;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 flex flex-col items-center min-h-screen p-4 sm:p-6 md:p-8">
@@ -50,15 +53,9 @@
             <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                 <h2 class="text-xl font-semibold text-white">Service Management</h2>
                  <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
-                    <button id="loadServicesBtn" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">
-                        Load/Refresh
-                    </button>
-                    <button id="addNewBtn" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">
-                        Add Service
-                    </button>
-                    <button id="openUploaderBtn" class="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">
-                        Upload Icon
-                    </button>
+                    <button id="addNewBtn" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">Add Service</button>
+                    <button id="toggleReorderBtn" class="w-full sm:w-auto bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">Re-order List</button>
+                    <button id="openUploaderBtn" class="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">Upload Icon</button>
                 </div>
             </div>
             
@@ -69,9 +66,12 @@
 
             <div id="serviceList" class="space-y-4"></div>
 
-            <div class="mt-8 pt-6 border-t border-gray-700 flex justify-end">
+            <div class="mt-8 pt-6 border-t border-gray-700 flex flex-col sm:flex-row gap-4 justify-end">
+                 <button id="loadServicesBtn" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-300 order-last sm:order-first">
+                    Load/Refresh
+                </button>
                 <button id="saveChangesBtn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    Save All Changes to GitHub
+                    Save All Changes
                 </button>
             </div>
         </div>
@@ -110,6 +110,7 @@
         const serviceModal = document.getElementById('serviceModal');
         const confirmModal = document.getElementById('confirmModal');
         const toast = document.getElementById('toast');
+        const toggleReorderBtn = document.getElementById('toggleReorderBtn');
 
         // --- State ---
         let services = [];
@@ -119,6 +120,7 @@
         let hasChanges = false;
         let githubAccessToken = null;
         let APP_SECRETS = {};
+        let isReorderMode = false;
 
         // --- Securely fetch secrets from the Cloudflare Function ---
         const fetchSecrets = async () => {
@@ -167,7 +169,7 @@
                 githubAccessToken = APP_SECRETS.ACCESS_TOKEN;
                 loginModal.classList.add('hidden');
                 mainContent.classList.remove('hidden');
-                loadServicesBtn.click();
+                loadServices();
             } else {
                 showToast("Invalid credentials", true);
                 loginButton.disabled = false;
@@ -220,11 +222,31 @@
         // --- Service Management Logic ---
         const renderServiceList = () => {
             serviceList.innerHTML = '';
+            serviceList.classList.toggle('reorder-mode', isReorderMode);
+
             services.forEach((service, index) => {
                 const isStatic = staticServices.some(s => s.id === service.id);
                 const card = document.createElement('div');
                 card.className = 'service-card bg-gray-700 p-4 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow';
                 card.dataset.id = service.id;
+
+                let actionButtonsHTML = '';
+                if (!isStatic) {
+                    if (isReorderMode) {
+                        actionButtonsHTML = `
+                            <button title="Move Up" onclick="moveService(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="p-2 rounded-full bg-gray-600 hover:bg-gray-500 disabled:opacity-30 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg></button>
+                            <button title="Move Down" onclick="moveService(${index}, 1)" ${index === services.length - 1 - staticServices.length ? 'disabled' : ''} class="p-2 rounded-full bg-gray-600 hover:bg-gray-500 disabled:opacity-30 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
+                        `;
+                    } else {
+                        actionButtonsHTML = `
+                            <button title="Edit" onclick="openServiceModal(${index})" class="p-2 rounded-full bg-blue-600 hover:bg-blue-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
+                            <button title="Delete" onclick="confirmDelete(${index})" class="p-2 rounded-full bg-red-600 hover:bg-red-500 text-white transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                        `;
+                    }
+                } else {
+                    actionButtonsHTML = '<span class="text-xs text-gray-500 italic pr-4">Static</span>';
+                }
+
                 card.innerHTML = `
                     <div class="flex items-center gap-4 w-full">
                         <img src="${service.icon_url}" alt="${service.name}" class="w-12 h-12 rounded-md object-cover bg-gray-800 flex-shrink-0">
@@ -234,17 +256,27 @@
                             <span class="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded-full mt-1 inline-block">v${service.version}</span>
                         </div>
                     </div>
-                    <div class="flex items-center justify-end gap-2 w-full sm:w-auto flex-shrink-0">
-                        ${!isStatic ? `
-                        <button onclick="moveService(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="px-2 py-1 text-xs bg-gray-600 rounded hover:bg-gray-500 disabled:opacity-30">Up</button>
-                        <button onclick="moveService(${index}, 1)" ${index === services.length - 1 - staticServices.length ? 'disabled' : ''} class="px-2 py-1 text-xs bg-gray-600 rounded hover:bg-gray-500 disabled:opacity-30">Down</button>
-                        <button onclick="openServiceModal(${index})" class="px-2 py-1 text-xs bg-blue-600 rounded hover:bg-blue-500">Edit</button>
-                        <button onclick="confirmDelete(${index})" class="px-2 py-1 text-xs bg-red-600 rounded hover:bg-red-500">Delete</button>
-                        ` : '<span class="text-xs text-gray-500 italic pr-4">Static</span>'}
+                    <div class="flex items-center justify-end gap-3 w-full sm:w-auto flex-shrink-0">
+                        ${actionButtonsHTML}
                     </div>`;
                 serviceList.appendChild(card);
             });
         };
+
+        const toggleReorderMode = () => {
+            isReorderMode = !isReorderMode;
+            if (isReorderMode) {
+                toggleReorderBtn.textContent = 'Finish Re-ordering';
+                toggleReorderBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-700');
+                toggleReorderBtn.classList.add('bg-red-600', 'hover:bg-red-500');
+            } else {
+                toggleReorderBtn.textContent = 'Re-order List';
+                toggleReorderBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+                toggleReorderBtn.classList.remove('bg-red-600', 'hover:bg-red-500');
+            }
+            renderServiceList();
+        };
+
         const loadServices = async () => { setLoading(true); const jsonData = await getFile(GITHUB_CONFIG.paths.json); const shData = await getFile(GITHUB_CONFIG.paths.sh); if (!jsonData || !shData) { setLoading(false); return; } jsonFile.sha = jsonData.sha; shFile = { content: shData.content, sha: shData.sha }; const allServices = JSON.parse(jsonData.content); const dynamicServiceIds = new Set( (shFile.content.match(/# --- Dynamic Services Start ---([\s\S]*?)# --- Dynamic Services End ---/)?.[1] || '').match(/install_\w+/g) || [] ); services = allServices.filter(s => dynamicServiceIds.has(s.id)); staticServices = allServices.filter(s => !dynamicServiceIds.has(s.id)); services = [...services, ...staticServices]; renderServiceList(); hasChanges = false; saveChangesBtn.disabled = true; setLoading(false); showToast("Services loaded successfully."); };
         const openServiceModal = (index = null) => { const isEditing = index !== null; const service = isEditing ? services[index] : {}; const modalTitle = isEditing ? 'Edit Service' : 'Add New Service'; const buttonText = isEditing ? 'Save Changes' : 'Create Service'; serviceModal.innerHTML = `<div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-lg m-4"><h2 class="text-2xl font-bold mb-6 text-white">${modalTitle}</h2><form id="service-form" class="space-y-4"><input type="hidden" id="service-index" value="${isEditing ? index : ''}"><div><label for="service-name" class="block text-sm font-medium text-gray-300">Service Name</label><input type="text" id="service-name" value="${service.name || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded"></div><div><label for="service-desc" class="block text-sm font-medium text-gray-300">Description</label><input type="text" id="service-desc" value="${service.description || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded"></div><div><label for="service-icon" class="block text-sm font-medium text-gray-300">Icon URL</label><input type="url" id="service-icon" value="${service.icon_url || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded"></div><div><label for="service-version" class="block text-sm font-medium text-gray-300">Version</label><input type="text" id="service-version" value="${service.version || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded"></div><div><label for="service-script" class="block text-sm font-medium text-gray-300">Install Script URL</label><input type="url" id="service-script" value="${service.script_url || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded"></div><div class="pt-4 flex justify-end gap-4"><button type="button" onclick="closeServiceModal()" class="px-6 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Cancel</button><button type="submit" class="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg">${buttonText}</button></div></form></div>`; serviceModal.classList.remove('hidden'); document.getElementById('service-form').addEventListener('submit', (e) => { e.preventDefault(); const indexValue = document.getElementById('service-index').value; const newService = { id: `install_${document.getElementById('service-name').value.toLowerCase().replace(/[^a-z0-9]/g, '')}`, name: document.getElementById('service-name').value, description: document.getElementById('service-desc').value, icon_url: document.getElementById('service-icon').value, version: document.getElementById('service-version').value, script_url: document.getElementById('service-script').value }; if (indexValue) { services[parseInt(indexValue)] = newService; } else { const insertIndex = services.length - staticServices.length; services.splice(insertIndex, 0, newService); } renderServiceList(); updateSaveChangesBtn(); closeServiceModal(); }); };
         const closeServiceModal = () => serviceModal.classList.add('hidden');
@@ -352,6 +384,7 @@
         loadServicesBtn.addEventListener('click', loadServices);
         addNewBtn.addEventListener('click', () => openServiceModal());
         saveChangesBtn.addEventListener('click', saveChanges);
+        toggleReorderBtn.addEventListener('click', toggleReorderMode);
 
     </script>
 </body>
