@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PeDitXOs Simple Updater</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .toast { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 60; left: 50%; bottom: 30px; opacity: 0; transition: opacity 0.5s, visibility 0.5s; }
+        .toast.show { visibility: visible; opacity: 1; }
+        .modal-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.7); z-index: 50; backdrop-filter: blur(4px); }
+        .service-card { transition: transform 0.2s ease-in-out; }
+        .file-drop-area { border: 2px dashed #4a5568; }
+        .file-drop-area.highlight { border-color: #4299e1; background-color: #2c5282; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex flex-col items-center min-h-screen p-4 sm:p-6 md:p-8">
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal-backdrop flex items-center justify-center">
+        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm m-4">
+            <h2 class="text-2xl font-bold mb-6 text-white text-center">Admin Access</h2>
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-300">Username</label>
+                    <input type="text" id="username" required class="mt-1 w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
+                    <input type="password" id="password" required class="mt-1 w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="main-content" class="w-full max-w-6xl hidden">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-white">PeDitXOs Service Updater</h1>
+            <p class="text-gray-400 mt-2">The simple, direct way to manage your services.</p>
+        </header>
+        
+        <div id="service-management-section" class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-white mb-4 sm:mb-0">Service Management</h2>
+                 <div class="flex items-center gap-4 flex-wrap justify-center">
+                    <button id="loadServicesBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">
+                        Load/Refresh
+                    </button>
+                    <button id="addNewBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">
+                        Add Service
+                    </button>
+                    <button id="openUploaderBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">
+                        Upload Icon
+                    </button>
+                </div>
+            </div>
+            
+            <div id="loadingIndicator" class="text-center text-gray-400 hidden my-4">
+                 <svg class="animate-spin h-5 w-5 text-white inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Communicating with GitHub...
+            </div>
+
+            <div id="serviceList" class="space-y-4"></div>
+
+            <div class="mt-8 pt-6 border-t border-gray-700 flex justify-end">
+                <button id="saveChangesBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Save All Changes to GitHub
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="serviceModal" class="modal-backdrop hidden flex items-center justify-center"></div>
+    <div id="confirmModal" class="modal-backdrop hidden flex items-center justify-center"></div>
+    <div id="uploaderModal" class="modal-backdrop hidden flex items-center justify-center"></div>
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const ADMIN_USERNAME = "your_username_here";
+        const ADMIN_PASSWORD = "your_password_here";
+        const GITHUB_TOKEN   = "paste_your_github_pat_here_(starts_with_ghp)";
+        // --- END OF CONFIGURATION ---
+
+        const GITHUB_CONFIG = { 
+            owner: 'PeDitXOs', 
+            repo: 'PeDitXOs', 
+            branch: 'main', 
+            paths: { 
+                json: 'services/services.json', 
+                sh: 'services/services_runner.sh',
+                // You can change this path if you want to store icons elsewhere
+                icons: '.files/icon/store_icons' 
+            }
+        };
+        
+        // --- DOM Elements ---
+        const openUploaderBtn = document.getElementById('openUploaderBtn');
+        const uploaderModal = document.getElementById('uploaderModal');
+        const loginModal = document.getElementById('login-modal');
+        const loginForm = document.getElementById('login-form');
+        const mainContent = document.getElementById('main-content');
+        const loadServicesBtn = document.getElementById('loadServicesBtn');
+        const addNewBtn = document.getElementById('addNewBtn');
+        const serviceList = document.getElementById('serviceList');
+        const saveChangesBtn = document.getElementById('saveChangesBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const serviceModal = document.getElementById('serviceModal');
+        const confirmModal = document.getElementById('confirmModal');
+        const toast = document.getElementById('toast');
+
+        // --- State ---
+        let services = [];
+        let shFile = { content: '', sha: null };
+        let jsonFile = { sha: null };
+        let staticServices = [];
+        let hasChanges = false;
+        let githubAccessToken = null;
+
+        // --- Authentication & GitHub API Logic ---
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            if (user === ADMIN_USERNAME && pass === ADMIN_PASSWORD) {
+                if (!GITHUB_TOKEN || !GITHUB_TOKEN.startsWith('ghp_')) {
+                    showToast("Error: GitHub Token is invalid in the config!", true); return;
+                }
+                githubAccessToken = GITHUB_TOKEN;
+                loginModal.classList.add('hidden');
+                mainContent.classList.remove('hidden');
+                loadServicesBtn.click();
+            } else {
+                showToast("Invalid credentials", true);
+            }
+        });
+
+        const apiRequest = async (url, options = {}) => {
+            if (!githubAccessToken) { showToast("Authentication token is missing.", true); return null; }
+            const headers = { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `token ${githubAccessToken}`, ...options.headers, };
+            try {
+                const response = await fetch(url, { ...options, headers });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`GitHub API Error (${response.status}): ${errorData.message || 'Unknown error'}`);
+                }
+                // Handle 204 No Content for deletions
+                if (response.status === 204) return { success: true }; 
+                return response.json();
+            } catch (error) {
+                showToast(error.message, true);
+                console.error(error);
+                return null;
+            }
+        };
+
+        const getFile = async (filePath) => {
+            const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${filePath}?ref=${GITHUB_CONFIG.branch}`;
+            const data = await apiRequest(url);
+            if (!data) return null;
+            return { content: atob(data.content), sha: data.sha };
+        };
+
+        const updateFile = async (filePath, content, sha, commitMessage) => {
+            const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${filePath}`;
+            return await apiRequest(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: commitMessage, content: btoa(content), sha: sha, branch: GITHUB_CONFIG.branch }) });
+        };
+
+        const showToast = (message, isError = false) => {
+            toast.textContent = message;
+            toast.className = `toast show ${isError ? 'bg-red-600' : 'bg-gray-700'}`;
+            setTimeout(() => { toast.className = 'toast'; }, 3000);
+        };
+        const setLoading = (isLoading) => {
+            loadingIndicator.classList.toggle('hidden', !isLoading);
+            loadServicesBtn.disabled = isLoading;
+            saveChangesBtn.disabled = isLoading || !hasChanges;
+        };
+        const updateSaveChangesBtn = () => { hasChanges = true; saveChangesBtn.disabled = false; };
+
+        // --- Service Management Logic (unchanged) ---
+        const renderServiceList = () => {
+            serviceList.innerHTML = '';
+            services.forEach((service, index) => {
+                const isStatic = staticServices.some(s => s.id === service.id);
+                const card = document.createElement('div');
+                card.className = 'service-card bg-gray-700 p-4 rounded-lg flex items-center justify-between shadow';
+                card.dataset.id = service.id;
+                card.innerHTML = `<div class="flex items-center gap-4"><img src="${service.icon_url}" alt="${service.name}" class="w-12 h-12 rounded-md object-cover bg-gray-800"><div><h3 class="font-semibold text-white">${service.name}</h3><p class="text-sm text-gray-400">${service.description}</p><span class="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded-full mt-1 inline-block">v${service.version}</span></div></div><div class="flex items-center gap-2">${!isStatic ? `<button onclick="moveService(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="p-2 rounded-full hover:bg-gray-600 disabled:opacity-30"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.707a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L9.414 11H13a1 1 0 100-2H9.414l1.293-1.293z" clip-rule="evenodd" /></svg></button><button onclick="moveService(${index}, 1)" ${index === services.length - 1 - staticServices.length ? 'disabled' : ''} class="p-2 rounded-full hover:bg-gray-600 disabled:opacity-30"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-.707-4.707a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293z" clip-rule="evenodd" /></svg></button><button onclick="openServiceModal(${index})" class="p-2 rounded-full hover:bg-gray-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button><button onclick="confirmDelete(${index})" class="p-2 rounded-full hover:bg-gray-600 text-red-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : '<span class="text-xs text-gray-500 italic pr-4">Static</span>'}</div>`;
+                serviceList.appendChild(card);
+            });
+        };
+        const loadServices = async () => { setLoading(true); const jsonData = await getFile(GITHUB_CONFIG.paths.json); const shData = await getFile(GITHUB_CONFIG.paths.sh); if (!jsonData || !shData) { setLoading(false); return; } jsonFile.sha = jsonData.sha; shFile = { content: shData.content, sha: shData.sha }; const allServices = JSON.parse(jsonData.content); const dynamicServiceIds = new Set( (shFile.content.match(/# --- Dynamic Services Start ---([\s\S]*?)# --- Dynamic Services End ---/)?.[1] || '').match(/install_\w+/g) || [] ); services = allServices.filter(s => dynamicServiceIds.has(s.id)); staticServices = allServices.filter(s => !dynamicServiceIds.has(s.id)); services = [...services, ...staticServices]; renderServiceList(); hasChanges = false; saveChangesBtn.disabled = true; setLoading(false); showToast("Services loaded successfully."); };
+        const openServiceModal = (index = null) => { const isEditing = index !== null; const service = isEditing ? services[index] : {}; const modalTitle = isEditing ? 'Edit Service' : 'Add New Service'; const buttonText = isEditing ? 'Save Changes' : 'Create Service'; serviceModal.innerHTML = `<div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-lg m-4"><h2 class="text-2xl font-bold mb-6 text-white">${modalTitle}</h2><form id="service-form" class="space-y-4"><input type="hidden" id="service-index" value="${isEditing ? index : ''}"><div><label for="service-name" class="block text-sm font-medium text-gray-300">Service Name</label><input type="text" id="service-name" value="${service.name || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded"></div><div><label for="service-desc" class="block text-sm font-medium text-gray-300">Description</label><input type="text" id="service-desc" value="${service.description || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded"></div><div><label for="service-icon" class="block text-sm font-medium text-gray-300">Icon URL</label><input type="url" id="service-icon" value="${service.icon_url || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded"></div><div><label for="service-version" class="block text-sm font-medium text-gray-300">Version</label><input type="text" id="service-version" value="${service.version || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded"></div><div><label for="service-script" class="block text-sm font-medium text-gray-300">Install Script URL</label><input type="url" id="service-script" value="${service.script_url || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded"></div><div class="pt-4 flex justify-end gap-4"><button type="button" onclick="closeServiceModal()" class="px-6 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Cancel</button><button type="submit" class="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg">${buttonText}</button></div></form></div>`; serviceModal.classList.remove('hidden'); document.getElementById('service-form').addEventListener('submit', (e) => { e.preventDefault(); const indexValue = document.getElementById('service-index').value; const newService = { id: `install_${document.getElementById('service-name').value.toLowerCase().replace(/[^a-z0-9]/g, '')}`, name: document.getElementById('service-name').value, description: document.getElementById('service-desc').value, icon_url: document.getElementById('service-icon').value, version: document.getElementById('service-version').value, script_url: document.getElementById('service-script').value }; if (indexValue) { services[parseInt(indexValue)] = newService; } else { const insertIndex = services.length - staticServices.length; services.splice(insertIndex, 0, newService); } renderServiceList(); updateSaveChangesBtn(); closeServiceModal(); }); };
+        const closeServiceModal = () => serviceModal.classList.add('hidden');
+        const confirmDelete = (index) => { confirmModal.innerHTML = `<div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm m-4 text-center"><h2 class="text-xl font-bold mb-4 text-white">Are you sure?</h2><p class="text-gray-400 mb-6">This will permanently delete the "${services[index].name}" service.</p><div class="flex justify-center gap-4"><button onclick="closeConfirmModal()" class="px-6 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Cancel</button><button onclick="deleteService(${index})" class="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg">Delete</button></div></div>`; confirmModal.classList.remove('hidden'); };
+        const closeConfirmModal = () => confirmModal.classList.add('hidden');
+        const deleteService = (index) => { services.splice(index, 1); renderServiceList(); updateSaveChangesBtn(); closeConfirmModal(); };
+        const moveService = (index, direction) => { const newIndex = index + direction; const dynamicServicesCount = services.length - staticServices.length; if (newIndex < 0 || newIndex >= dynamicServicesCount) return; [services[index], services[newIndex]] = [services[newIndex], services[index]]; renderServiceList(); updateSaveChangesBtn(); };
+        const generateShFile = () => { const dynamicServices = services.filter(s => !staticServices.some(staticS => staticS.id === s.id)); const urlSection = dynamicServices.map(s => `URL_${s.id.replace('install_', '').toUpperCase()}="${s.script_url}"`).join('\n'); const funcSection = dynamicServices.map(s => { const varName = `URL_${s.id.replace('install_', '').toUpperCase()}`; const scriptFileName = s.script_url.split('/').pop(); return `\n${s.id}() {\n    echo "Downloading ${s.name} components..."\n    cd /tmp && rm -f ${scriptFileName} && wget -q "$${varName}" -O ${scriptFileName} && chmod +x ${scriptFileName} && sh ${scriptFileName}\n}`; }).join('\n'); const caseSection = dynamicServices.map(s => `    ${s.id}) ${s.id} ;;`).join('\n'); let shContent = shFile.content; shContent = shContent.replace(/(# --- Dynamic URLs Start ---)[\s\S]*?(# --- Dynamic URLs End ---)/, `$1\n${urlSection}\n$2`); shContent = shContent.replace(/(# --- Dynamic Functions Start ---)[\s\S]*?(# --- Dynamic Functions End ---)/, `$1${funcSection}\n$2`); shContent = shContent.replace(/(# --- Dynamic Cases Start ---)[\s\S]*?(# --- Dynamic Cases End ---)/, `$1\n${caseSection}\n$2`); return shContent; };
+        const saveChanges = async () => { setLoading(true); const newJsonContent = JSON.stringify(services.filter(s => s.id), null, 2); const newShContent = generateShFile(); showToast("Updating services.json..."); const jsonUpdate = await updateFile(GITHUB_CONFIG.paths.json, newJsonContent, jsonFile.sha, 'Update services via web updater'); if (jsonUpdate) { jsonFile.sha = jsonUpdate.content.sha; showToast("Updating services_runner.sh..."); const shUpdate = await updateFile(GITHUB_CONFIG.paths.sh, newShContent, shFile.sha, 'Update runner via web updater'); if (shUpdate) { shFile.sha = shUpdate.content.sha; showToast("All changes saved successfully!", false); hasChanges = false; saveChangesBtn.disabled = true; } else { showToast("Failed to update runner script. JSON file was updated.", true); } } else { showToast("Failed to update JSON file. No changes were saved.", true); } setLoading(false); };
+
+        // --- FINAL, RELIABLE UPLOADER: Uploads to your own GitHub Repo ---
+        const openUploaderModal = () => {
+            uploaderModal.innerHTML = `
+                <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-lg m-4">
+                    <h2 class="text-2xl font-bold mb-6 text-white">Upload Icon to GitHub Repo</h2>
+                     <p class="text-sm text-gray-400 mb-4">Icons will be uploaded to: <code class="bg-gray-700 p-1 rounded">${GITHUB_CONFIG.paths.icons}</code></p>
+                    <div id="file-drop-area" class="file-drop-area rounded-lg p-8 text-center cursor-pointer mb-4">
+                        <p class="text-gray-400">Drag & drop your image here, or click to select a file.</p>
+                        <input type="file" id="file-input" class="hidden" accept="image/*">
+                    </div>
+                    <div id="preview-area" class="hidden text-center">
+                        <img id="image-preview" class="max-h-48 mx-auto rounded-lg mb-4">
+                    </div>
+                    <div id="upload-result" class="hidden">
+                        <label class="block text-sm font-medium text-gray-300">Image URL:</label>
+                        <div class="flex items-center gap-2 mt-1">
+                            <input type="text" id="image-url" readonly class="w-full p-2 bg-gray-700 rounded border-gray-600">
+                            <button id="copy-url-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg">Copy</button>
+                        </div>
+                    </div>
+                    <div id="upload-progress" class="hidden mt-4">
+                        <p class="text-center text-sm text-gray-400 mt-2">Uploading to GitHub...</p>
+                    </div>
+                    <div class="pt-6 flex justify-end gap-4">
+                        <button type="button" onclick="closeUploaderModal()" class="px-6 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Close</button>
+                        <button id="upload-btn" class="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>Upload</button>
+                    </div>
+                </div>`;
+            uploaderModal.classList.remove('hidden');
+
+            const dropArea = document.getElementById('file-drop-area');
+            const fileInput = document.getElementById('file-input');
+            const imagePreview = document.getElementById('image-preview');
+            const uploadBtn = document.getElementById('upload-btn');
+            let selectedFile = null;
+            
+            dropArea.onclick = () => fileInput.click();
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+                dropArea.addEventListener(eventName, () => dropArea.classList.toggle('highlight', eventName === 'dragover' || eventName === 'dragenter'));
+            });
+
+            dropArea.addEventListener('drop', (e) => handleFile(e.dataTransfer.files[0]));
+            fileInput.onchange = (e) => handleFile(e.target.files[0]);
+
+            function handleFile(file) {
+                if (!file || !file.type.startsWith('image/')) {
+                    showToast("Please select a valid image file.", true); return;
+                }
+                selectedFile = file;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.src = e.target.result;
+                    document.getElementById('preview-area').classList.remove('hidden');
+                    uploadBtn.disabled = false;
+                }
+                reader.readAsDataURL(file);
+            }
+
+            uploadBtn.onclick = () => {
+                if (!selectedFile) return;
+
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const base64Content = event.target.result.split(',')[1];
+                    const filePath = `${GITHUB_CONFIG.paths.icons}/${Date.now()}-${selectedFile.name}`;
+                    const commitMessage = `Upload icon: ${selectedFile.name}`;
+
+                    document.getElementById('upload-progress').classList.remove('hidden');
+                    uploadBtn.disabled = true;
+
+                    const result = await updateFile(filePath, base64Content, null, commitMessage);
+
+                    if (result && result.content && result.content.download_url) {
+                        document.getElementById('image-url').value = result.content.download_url;
+                        document.getElementById('upload-result').classList.remove('hidden');
+                        showToast("Upload successful!", false);
+                    } else {
+                        showToast("Upload failed. Check console for details.", true);
+                    }
+                    document.getElementById('upload-progress').classList.add('hidden');
+                };
+                reader.readAsDataURL(selectedFile);
+            };
+
+            document.getElementById('copy-url-btn').onclick = () => {
+                navigator.clipboard.writeText(document.getElementById('image-url').value).then(() => showToast("URL copied to clipboard!"));
+            };
+        };
+
+        const closeUploaderModal = () => uploaderModal.classList.add('hidden');
+        
+        // --- Event Listeners ---
+        openUploaderBtn.addEventListener('click', openUploaderModal);
+        loadServicesBtn.addEventListener('click', loadServices);
+        addNewBtn.addEventListener('click', () => openServiceModal());
+        saveChangesBtn.addEventListener('click', saveChanges);
+
+    </script>
+</body>
+</html>
+
