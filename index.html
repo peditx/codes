@@ -85,16 +85,13 @@
 
     <script>
         // --- NO SECRETS HERE ---
-        // All configuration is now fetched securely from a serverless function.
-
-        // --- CORRECTED CONFIGURATION ---
         const GITHUB_CONFIG = { 
-            owner: 'peditx', // <-- CORRECTED
+            owner: 'peditx',
             repo: 'PeDitXOs', 
             branch: 'main', 
             paths: { 
                 json: 'services/services.json', 
-                sh: 'services/service_runner.sh', // <-- CORRECTED runner name
+                sh: 'services/service_runner.sh',
                 icons: '.files/icon/store_icons' 
             }
         };
@@ -239,10 +236,10 @@
                     </div>
                     <div class="flex items-center justify-end gap-2 w-full sm:w-auto flex-shrink-0">
                         ${!isStatic ? `
-                        <button title="Move Up" onclick="moveService(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="p-2 rounded-full hover:bg-gray-600 disabled:opacity-30 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" /></svg></button>
-                        <button title="Move Down" onclick="moveService(${index}, 1)" ${index === services.length - 1 - staticServices.length ? 'disabled' : ''} class="p-2 rounded-full hover:bg-gray-600 disabled:opacity-30 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>
-                        <button title="Edit" onclick="openServiceModal(${index})" class="p-2 rounded-full hover:bg-gray-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
-                        <button title="Delete" onclick="confirmDelete(${index})" class="p-2 rounded-full hover:bg-gray-600 text-red-400 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
+                        <button onclick="moveService(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="px-2 py-1 text-xs bg-gray-600 rounded hover:bg-gray-500 disabled:opacity-30">Up</button>
+                        <button onclick="moveService(${index}, 1)" ${index === services.length - 1 - staticServices.length ? 'disabled' : ''} class="px-2 py-1 text-xs bg-gray-600 rounded hover:bg-gray-500 disabled:opacity-30">Down</button>
+                        <button onclick="openServiceModal(${index})" class="px-2 py-1 text-xs bg-blue-600 rounded hover:bg-blue-500">Edit</button>
+                        <button onclick="confirmDelete(${index})" class="px-2 py-1 text-xs bg-red-600 rounded hover:bg-red-500">Delete</button>
                         ` : '<span class="text-xs text-gray-500 italic pr-4">Static</span>'}
                     </div>`;
                 serviceList.appendChild(card);
