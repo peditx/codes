@@ -303,7 +303,15 @@
                                 const urlVarName = `URL_${urlVarMatch[1]}`;
                                 const urlRegex = new RegExp(`^${urlVarName}="(.*?)"`, 'm');
                                 const urlMatch = shData.content.match(urlRegex);
-                                if (urlMatch) service.script_url = urlMatch[1];
+                                if (urlMatch && urlMatch[1]) {
+                                     service.script_url = urlMatch[1];
+                                } else {
+                                    console.warn(`Could not parse script_url for service: ${service.name}.`);
+                                    service.script_url = ''; // Prevent crashes
+                                }
+                            } else {
+                                console.warn(`Could not find URL variable for service: ${service.name}.`);
+                                service.script_url = ''; // Prevent crashes
                             }
                         } else {
                             service.type = 'commands';
@@ -394,13 +402,10 @@
                     commands: type === 'commands' ? document.getElementById('service-commands').value : undefined,
                 };
                 
-                // Remove undefined properties
                 Object.keys(newService).forEach(key => newService[key] === undefined && delete newService[key]);
 
                 if (indexValue) { 
-                    const oldId = services[parseInt(indexValue)].id;
                     services[parseInt(indexValue)] = newService;
-                    // If ID changed, we need to update static/dynamic status, but let's assume it doesn't for now for simplicity
                 } else { 
                     const insertIndex = services.length - staticServices.length;
                     services.splice(insertIndex, 0, newService);
@@ -421,18 +426,23 @@
             const dynamicServices = services.filter(s => !staticServices.some(staticS => staticS.id === s.id));
             
             const urlSection = dynamicServices
-                .filter(s => s.type === 'url')
+                .filter(s => s.type === 'url' && s.script_url)
                 .map(s => `URL_${s.id.replace('install_', '').toUpperCase()}="${s.script_url}"`).join('\n');
 
             const funcSection = dynamicServices.map(s => {
                 let funcBody = '';
                 if (s.type === 'url') {
-                    const varName = `URL_${s.id.replace('install_', '').toUpperCase()}`;
-                    const scriptFileName = s.script_url.split('/').pop();
-                    funcBody = `
+                    if (!s.script_url) {
+                        console.error(`Service "${s.name}" is type 'url' but has no script_url. Skipping function body.`);
+                        funcBody = `\n    echo "ERROR: Configuration for ${s.name} is incomplete. Missing script URL."\n`;
+                    } else {
+                        const varName = `URL_${s.id.replace('install_', '').toUpperCase()}`;
+                        const scriptFileName = s.script_url.split('/').pop();
+                        funcBody = `
     echo "Downloading ${s.name} components..."
     cd /tmp && rm -f ${scriptFileName} && wget -q "$${varName}" -O ${scriptFileName} && chmod +x ${scriptFileName} && sh ${scriptFileName}
 `;
+                    }
                 } else { // type === 'commands'
                     funcBody = `\n    ${s.commands.replace(/\n/g, '\n    ')}\n`;
                 }
@@ -442,16 +452,15 @@
             const caseSection = dynamicServices.map(s => `    ${s.id}) ${s.id} ;;`).join('\n');
             
             let shContent = shFile.content;
-            shContent = shContent.replace(/(# --- Dynamic URLs Start ---)[\s\\S]*?(# --- Dynamic URLs End ---)/, `$1\n${urlSection}\n$2`);
-            shContent = shContent.replace(/(# --- Dynamic Functions Start ---)[\s\\S]*?(# --- Dynamic Functions End ---)/, `$1\n${funcSection}\n$2`);
-            shContent = shContent.replace(/(# --- Dynamic Cases Start ---)[\s\\S]*?(# --- Dynamic Cases End ---)/, `$1\n${caseSection}\n$2`);
+            shContent = shContent.replace(/(# --- Dynamic URLs Start ---)[\s\S]*?(# --- Dynamic URLs End ---)/, `$1\n${urlSection}\n$2`);
+            shContent = shContent.replace(/(# --- Dynamic Functions Start ---)[\s\S]*?(# --- Dynamic Functions End ---)/, `$1\n${funcSection}\n$2`);
+            shContent = shContent.replace(/(# --- Dynamic Cases Start ---)[\s\S]*?(# --- Dynamic Cases End ---)/, `$1\n${caseSection}\n$2`);
             
             return shContent;
         };
 
         const saveChanges = async () => { 
             setLoading(true); 
-            // Create a clean version for JSON, without extra properties like 'type' or 'commands'
             const jsonToSave = services.map(s => {
                 const cleanService = { ...s };
                 delete cleanService.type;
