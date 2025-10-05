@@ -1,5 +1,5 @@
-// --- DEBUG VERSION ---
-// This code will tell us exactly which secrets are missing.
+// This function runs on Cloudflare's servers, not in the user's browser.
+// It securely reads the environment variables you set in the dashboard.
 export function onRequest(context) {
   // context.env contains the environment variables
   const secrets = {
@@ -8,29 +8,15 @@ export function onRequest(context) {
     ACCESS_TOKEN: context.env.ACCESS_TOKEN,
   };
 
-  const found = [];
-  const missing = [];
-
-  // Check each secret individually
-  Object.keys(secrets).forEach(key => {
-    if (secrets[key]) {
-      found.push(key);
-    } else {
-      missing.push(key);
-    }
-  });
-
-  // If any secret is missing, return a detailed error
-  if (missing.length > 0) {
-    const errorMessage = `Secrets check failed. Found: [${found.join(', ')}]. Missing: [${missing.join(', ')}]. Please check these variable names in your Cloudflare dashboard.`;
-    
-    return new Response(JSON.stringify({ error: errorMessage }), {
+  // Basic check to ensure variables are set
+  if (!secrets.ADMIN_USERNAME || !secrets.ADMIN_PASSWORD || !secrets.ACCESS_TOKEN) {
+    return new Response(JSON.stringify({ error: 'One or more secrets are not configured in Cloudflare Pages environment variables.' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  // If all secrets are found, proceed as normal
+  // Send the secrets as a JSON response to the front-end index.html
   return new Response(JSON.stringify(secrets), {
     headers: { 'Content-Type': 'application/json' },
   });
