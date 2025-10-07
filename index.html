@@ -297,17 +297,16 @@
 			const allServices = JSON.parse(jsonData.content);
 
 			const caseBlock = shData.content.match(/# --- Dynamic Cases Start ---([\s\S]*?)# --- Dynamic Cases End ---/)?.[1] || '';
-			const matches = [...caseBlock.matchAll(/^\s*(install_\w+)\)/gm)];
-			const dynamicServiceIds = new Set(matches.map(m => m[1]));
-			
-			// RESTORED: Logic to determine service type by inspecting the shell script
+			const matches = [...caseBlock.matchAll(/^\s*(?:install|uninstall)_(\w+)\)/gm)];
+			const dynamicServiceNames = new Set(matches.map(m => `install_${m[1]}`));
+
 			allServices.forEach(service => {
-				if (dynamicServiceIds.has(service.id)) {
-					const funcRegex = new RegExp(`(^|\\n)${service.id}\\s*\\(\\s*\\)\\s*\\{([\\s\\S]*?)\\}`, 'm');
+				if (dynamicServiceNames.has(service.id)) {
+					const funcRegex = new RegExp(`(^|\\n)${service.id}\\s*\\(\\s*\\)\\s*\\{([\\s\S]*?)\\}`, 'm');
 					const funcMatch = shData.content.match(funcRegex);
 					if (funcMatch && funcMatch[2]) {
 						const body = funcMatch[2].trim();
-						if (body.includes('wget -q')) {
+						if (body.includes('wget -q "$URL_')) {
 							service.type = 'url';
 						} else {
 							service.type = 'commands';
@@ -317,8 +316,8 @@
 				}
 			});
 
-			services = allServices.filter(s => dynamicServiceIds.has(s.id));
-			staticServices = allServices.filter(s => !dynamicServiceIds.has(s.id));
+			services = allServices.filter(s => dynamicServiceNames.has(s.id));
+			staticServices = allServices.filter(s => !dynamicServiceNames.has(s.id));
 			const dynamicServicesSorted = [...services];
 			services = [...dynamicServicesSorted, ...staticServices]; 
 
@@ -354,7 +353,6 @@
 							<div><label for="service-publisher-url" class="block text-sm font-medium text-gray-300">Publisher URL (Optional)</label><input type="url" id="service-publisher-url" value="${service.publisher_url || ''}" class="mt-1 w-full p-2 bg-gray-700 rounded-md border border-gray-600"></div>
 						</div>
 
-						<!-- RESTORED: Service Type Selection -->
 						<div class="border-t border-gray-700 pt-4">
 							<label class="block text-sm font-medium text-gray-300 mb-2">Service Type</label>
 							<div class="flex gap-4">
@@ -363,7 +361,6 @@
 							</div>
 						</div>
 						
-						<!-- RESTORED: URL and Command Inputs -->
 						<div id="url-input-container">
 							<label for="service-script" class="block text-sm font-medium text-gray-300">Install Script URL</label>
 							<input type="url" id="service-script" value="${service.script_url || ''}" class="mt-1 w-full p-2 bg-gray-700 rounded-md border border-gray-600">
@@ -384,7 +381,6 @@
 				</div>`;
 			serviceModal.classList.remove('hidden');
 
-			// RESTORED: JS logic to toggle between URL and Command inputs
 			const urlContainer = document.getElementById('url-input-container');
 			const commandsContainer = document.getElementById('commands-input-container');
 			const typeRadios = document.querySelectorAll('input[name="service-type"]');
@@ -404,7 +400,7 @@
 			}
 			
 			typeRadios.forEach(radio => radio.addEventListener('change', (e) => toggleInput(e.target.value)));
-			toggleInput(service.type || 'url'); // Default to 'url'
+			toggleInput(service.type || 'url');
 
 			document.getElementById('service-form').addEventListener('submit', (e) => {
 				e.preventDefault();
@@ -424,7 +420,6 @@
 					publisher_url: document.getElementById('service-publisher-url').value || undefined,
 					uninstall_id: uninstallScriptUrl ? `uninstall_${serviceName.toLowerCase().replace(/[^a-z0-9]/g, '')}` : undefined,
 					uninstall_script_url: uninstallScriptUrl || undefined,
-					// RESTORED: Save type and conditional fields
 					type: type,
 					script_url: type === 'url' ? document.getElementById('service-script').value : undefined,
 					commands: type === 'commands' ? document.getElementById('service-commands').value : undefined,
@@ -453,7 +448,6 @@
 		const generateShFile = () => {
 			const dynamicServices = services.filter(s => !staticServices.some(staticS => staticS.id === s.id));
 			
-			// URLs for URL-based services
 			const urlSection = dynamicServices
 				.filter(s => s.type === 'url' && s.script_url)
 				.map(s => `URL_${s.id.toUpperCase()}="${s.script_url}"`).join('\n');
@@ -462,7 +456,6 @@
 				.filter(s => s.uninstall_script_url)
 				.map(s => `URL_UNINSTALL_${s.id.toUpperCase()}="${s.uninstall_script_url}"`).join('\n');
 
-			// Install functions for both types
 			const funcSection = dynamicServices.map(s => {
 				let funcBody = '';
 				if (s.type === 'url') {
@@ -471,13 +464,12 @@
 	echo "Downloading ${s.name} components..."
 	cd /tmp && rm -f ${scriptFileName} && wget -q "$URL_${s.id.toUpperCase()}" -O ${scriptFileName} && chmod +x ${scriptFileName} && sh ${scriptFileName}
 `;
-				} else { // type === 'commands'
+				} else { 
 					funcBody = `\n	${s.commands.replace(/\n/g, '\n	')}\n`;
 				}
 				return `${s.id}() {${funcBody}}`;
 			}).join('\n\n');
 
-			// Uninstall functions (currently only URL-based)
 			const uninstallFuncSection = dynamicServices.filter(s => s.uninstall_id).map(s => {
 				const scriptFileName = s.uninstall_script_url.split('/').pop();
 				const funcBody = `
@@ -507,7 +499,6 @@
 
 		const saveChanges = async () => { 
 			setLoading(true); 
-			// In JSON, we don't need 'type' or 'commands'
 			const jsonToSave = services.map(s => {
 				const { type, commands, ...rest } = s;
 				return rest;
