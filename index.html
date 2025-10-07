@@ -1,608 +1,641 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PeDitXOs Service Updater</title>
-    <!-- Favicon Added -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚙️</text></svg>">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .toast { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 60; left: 50%; bottom: 30px; opacity: 0; transition: opacity 0.5s, visibility 0.5s; }
-        .toast.show { visibility: visible; opacity: 1; }
-        .modal-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.7); z-index: 50; backdrop-filter: blur(4px); }
-        .service-card { transition: all 0.2s ease-in-out; }
-        .file-drop-area { border: 2px dashed #4a5568; }
-        .file-drop-area.highlight { border-color: #4299e1; background-color: #2c5282; }
-        #serviceList.reorder-mode .service-card {
-            box-shadow: 0 0 0 2px #4299e1;
-        }
-    </style>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>PeDitXOs Service Updater</title>
+	<!-- Favicon Added -->
+	<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚙️</text></svg>">
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+	<style>
+		body { font-family: 'Inter', sans-serif; }
+		.toast { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 60; left: 50%; bottom: 30px; opacity: 0; transition: opacity 0.5s, visibility 0.5s; }
+		.toast.show { visibility: visible; opacity: 1; }
+		.modal-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.7); z-index: 50; backdrop-filter: blur(4px); }
+		.service-card { transition: all 0.2s ease-in-out; }
+		.file-drop-area { border: 2px dashed #4a5568; }
+		.file-drop-area.highlight { border-color: #4299e1; background-color: #2c5282; }
+		#serviceList.reorder-mode .service-card {
+			box-shadow: 0 0 0 2px #4299e1;
+		}
+	</style>
 </head>
 <body class="bg-gray-900 text-gray-200 flex flex-col items-center min-h-screen p-4 sm:p-6 md:p-8">
 
-    <!-- Login Modal -->
-    <div id="login-modal" class="modal-backdrop flex items-center justify-center">
-        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm m-4">
-            <h2 class="text-2xl font-bold mb-6 text-white text-center">Admin Access</h2>
-            <form id="login-form" class="space-y-4">
-                <div>
-                    <label for="username" class="block text-sm font-medium text-gray-300">Username</label>
-                    <input type="text" id="username" required class="mt-1 w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
-                    <input type="password" id="password" required class="mt-1 w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="pt-2">
-                    <button type="submit" class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors">Login</button>
-                </div>
-            </form>
-        </div>
-    </div>
+	<!-- Login Modal -->
+	<div id="login-modal" class="modal-backdrop flex items-center justify-center">
+		<div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm m-4">
+			<h2 class="text-2xl font-bold mb-6 text-white text-center">Admin Access</h2>
+			<form id="login-form" class="space-y-4">
+				<div>
+					<label for="username" class="block text-sm font-medium text-gray-300">Username</label>
+					<input type="text" id="username" required class="mt-1 w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+				</div>
+				<div>
+					<label for="password" class="block text-sm font-medium text-gray-300">Password</label>
+					<input type="password" id="password" required class="mt-1 w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+				</div>
+				<div class="pt-2">
+					<button type="submit" class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors">Login</button>
+				</div>
+			</form>
+		</div>
+	</div>
 
-    <div id="main-content" class="w-full max-w-6xl hidden">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl sm:text-4xl font-bold text-white">PeDitXOs Service Updater</h1>
-            <p class="text-gray-400 mt-2">The simple, direct way to manage your services.</p>
-        </header>
-        
-        <div id="service-management-section" class="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-lg">
-            <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                <h2 class="text-xl font-semibold text-white">Service Management</h2>
-                 <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
-                    <button id="addNewBtn" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">Add Service</button>
-                    <button id="toggleReorderBtn" class="w-full sm:w-auto bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">Re-order List</button>
-                    <button id="openUploaderBtn" class="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">Upload Icon</button>
-                </div>
-            </div>
-            
-            <div id="loadingIndicator" class="text-center text-gray-400 hidden my-4">
-                 <svg class="animate-spin h-5 w-5 text-white inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                Communicating with GitHub...
-            </div>
+	<div id="main-content" class="w-full max-w-6xl hidden">
+		<header class="text-center mb-8">
+			<h1 class="text-3xl sm:text-4xl font-bold text-white">PeDitXOs Service Updater</h1>
+			<p class="text-gray-400 mt-2">The simple, direct way to manage your services.</p>
+		</header>
+		
+		<div id="service-management-section" class="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-lg">
+			<div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+				<h2 class="text-xl font-semibold text-white">Service Management</h2>
+				 <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
+					<button id="addNewBtn" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">Add Service</button>
+					<button id="toggleReorderBtn" class="w-full sm:w-auto bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">Re-order List</button>
+					<button id="openUploaderBtn" class="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">Upload Icon</button>
+				</div>
+			</div>
+			
+			<div id="loadingIndicator" class="text-center text-gray-400 hidden my-4">
+				 <svg class="animate-spin h-5 w-5 text-white inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+				 Communicating with GitHub...
+			</div>
 
-            <div id="serviceList" class="space-y-4"></div>
+			<div id="serviceList" class="space-y-4"></div>
 
-            <div class="mt-8 pt-6 border-t border-gray-700 flex flex-col sm:flex-row gap-4 justify-end">
-                 <button id="loadServicesBtn" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-300 order-last sm:order-first">
-                    Load/Refresh
-                </button>
-                <button id="saveChangesBtn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    Save All Changes
-                </button>
-            </div>
-        </div>
-    </div>
+			<div class="mt-8 pt-6 border-t border-gray-700 flex flex-col sm:flex-row gap-4 justify-end">
+				 <button id="loadServicesBtn" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-300 order-last sm:order-first">
+					 Load/Refresh
+				</button>
+				<button id="saveChangesBtn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+					 Save All Changes
+				</button>
+			</div>
+		</div>
+	</div>
 
-    <!-- Modals -->
-    <div id="serviceModal" class="modal-backdrop hidden flex items-center justify-center p-4"></div>
-    <div id="confirmModal" class="modal-backdrop hidden flex items-center justify-center p-4"></div>
-    <div id="uploaderModal" class="modal-backdrop hidden flex items-center justify-center p-4"></div>
-    <div id="toast" class="toast"></div>
+	<!-- Modals -->
+	<div id="serviceModal" class="modal-backdrop hidden flex items-center justify-center p-4"></div>
+	<div id="confirmModal" class="modal-backdrop hidden flex items-center justify-center p-4"></div>
+	<div id="uploaderModal" class="modal-backdrop hidden flex items-center justify-center p-4"></div>
+	<div id="toast" class="toast"></div>
 
-    <script>
-        // --- NO SECRETS HERE ---
-        const GITHUB_CONFIG = { 
-            owner: 'peditx',
-            repo: 'PeDitXOs', 
-            branch: 'main', 
-            paths: { 
-                json: 'services/services.json', 
-                sh: 'services/service_runner.sh',
-                icons: '.files/icon/store_icons' 
-            }
-        };
-        
-        // --- DOM Elements ---
-        const openUploaderBtn = document.getElementById('openUploaderBtn');
-        const uploaderModal = document.getElementById('uploaderModal');
-        const loginModal = document.getElementById('login-modal');
-        const loginForm = document.getElementById('login-form');
-        const mainContent = document.getElementById('main-content');
-        const loadServicesBtn = document.getElementById('loadServicesBtn');
-        const addNewBtn = document.getElementById('addNewBtn');
-        const serviceList = document.getElementById('serviceList');
-        const saveChangesBtn = document.getElementById('saveChangesBtn');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const serviceModal = document.getElementById('serviceModal');
-        const confirmModal = document.getElementById('confirmModal');
-        const toast = document.getElementById('toast');
-        const toggleReorderBtn = document.getElementById('toggleReorderBtn');
+	<script>
+		// --- NO SECRETS HERE ---
+		const GITHUB_CONFIG = { 
+			owner: 'peditx',
+			repo: 'PeDitXOs', 
+			branch: 'main', 
+			paths: { 
+				json: 'services/services.json', 
+				sh: 'services/service_runner.sh',
+				icons: '.files/icon/store_icons' 
+			}
+		};
+		
+		// --- DOM Elements ---
+		const openUploaderBtn = document.getElementById('openUploaderBtn');
+		const uploaderModal = document.getElementById('uploaderModal');
+		const loginModal = document.getElementById('login-modal');
+		const loginForm = document.getElementById('login-form');
+		const mainContent = document.getElementById('main-content');
+		const loadServicesBtn = document.getElementById('loadServicesBtn');
+		const addNewBtn = document.getElementById('addNewBtn');
+		const serviceList = document.getElementById('serviceList');
+		const saveChangesBtn = document.getElementById('saveChangesBtn');
+		const loadingIndicator = document.getElementById('loadingIndicator');
+		const serviceModal = document.getElementById('serviceModal');
+		const confirmModal = document.getElementById('confirmModal');
+		const toast = document.getElementById('toast');
+		const toggleReorderBtn = document.getElementById('toggleReorderBtn');
 
-        // --- State ---
-        let services = [];
-        let shFile = { content: '', sha: null };
-        let jsonFile = { sha: null };
-        let staticServices = [];
-        let hasChanges = false;
-        let githubAccessToken = null;
-        let APP_SECRETS = {};
-        let isReorderMode = false;
+		// --- State ---
+		let services = [];
+		let shFile = { content: '', sha: null };
+		let jsonFile = { sha: null };
+		let staticServices = [];
+		let hasChanges = false;
+		let githubAccessToken = null;
+		let APP_SECRETS = {};
+		let isReorderMode = false;
 
-        // --- Securely fetch secrets from the Cloudflare Function ---
-        const fetchSecrets = async () => {
-            try {
-                const response = await fetch('/api/secrets');
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Could not fetch configuration. Server responded with: ${errorText}`);
-                }
-                APP_SECRETS = await response.json();
-                if (APP_SECRETS.error) {
-                    throw new Error(APP_SECRETS.error);
-                }
-            } catch (error) {
-                showToast(error.message, true);
-                console.error(error);
-                return false;
-            }
-            return true;
-        };
-        
-        // --- Authentication & GitHub API Logic ---
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const loginButton = loginForm.querySelector('button[type="submit"]');
-            loginButton.disabled = true;
-            loginButton.innerHTML = `<svg class="animate-spin h-5 w-5 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+		// --- Securely fetch secrets from the Cloudflare Function ---
+		const fetchSecrets = async () => {
+			try {
+				const response = await fetch('/api/secrets');
+				if (!response.ok) {
+					const errorText = await response.text();
+					throw new Error(`Could not fetch configuration. Server responded with: ${errorText}`);
+				}
+				APP_SECRETS = await response.json();
+				if (APP_SECRETS.error) {
+					throw new Error(APP_SECRETS.error);
+				}
+			} catch (error) {
+				showToast(error.message, true);
+				console.error(error);
+				return false;
+			}
+			return true;
+		};
+		
+		// --- Authentication & GitHub API Logic ---
+		loginForm.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			const loginButton = loginForm.querySelector('button[type="submit"]');
+			loginButton.disabled = true;
+			loginButton.innerHTML = `<svg class="animate-spin h-5 w-5 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
 
-            const secretsLoaded = await fetchSecrets();
-            if (!secretsLoaded) {
-                loginButton.disabled = false;
-                loginButton.textContent = 'Login';
-                return;
-            }
+			const secretsLoaded = await fetchSecrets();
+			if (!secretsLoaded) {
+				loginButton.disabled = false;
+				loginButton.textContent = 'Login';
+				return;
+			}
 
-            const user = document.getElementById('username').value;
-            const pass = document.getElementById('password').value;
+			const user = document.getElementById('username').value;
+			const pass = document.getElementById('password').value;
 
-            if (user === APP_SECRETS.ADMIN_USERNAME && pass === APP_SECRETS.ADMIN_PASSWORD) {
-                if (!APP_SECRETS.ACCESS_TOKEN || !APP_SECRETS.ACCESS_TOKEN.startsWith('ghp_')) {
-                    showToast("Error: Access Token from server is invalid!", true);
-                    loginButton.disabled = false;
-                    loginButton.textContent = 'Login';
-                    return;
-                }
-                githubAccessToken = APP_SECRETS.ACCESS_TOKEN;
-                loginModal.classList.add('hidden');
-                mainContent.classList.remove('hidden');
-                loadServices();
-            } else {
-                showToast("Invalid credentials", true);
-                loginButton.disabled = false;
-                loginButton.textContent = 'Login';
-            }
-        });
+			if (user === APP_SECRETS.ADMIN_USERNAME && pass === APP_SECRETS.ADMIN_PASSWORD) {
+				if (!APP_SECRETS.ACCESS_TOKEN || !APP_SECRETS.ACCESS_TOKEN.startsWith('ghp_')) {
+					showToast("Error: Access Token from server is invalid!", true);
+					loginButton.disabled = false;
+					loginButton.textContent = 'Login';
+					return;
+				}
+				githubAccessToken = APP_SECRETS.ACCESS_TOKEN;
+				loginModal.classList.add('hidden');
+				mainContent.classList.remove('hidden');
+				loadServices();
+			} else {
+				showToast("Invalid credentials", true);
+				loginButton.disabled = false;
+				loginButton.textContent = 'Login';
+			}
+		});
 
-        const apiRequest = async (url, options = {}) => {
-            if (!githubAccessToken) { showToast("Authentication token is missing.", true); return null; }
-            const headers = { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `token ${githubAccessToken}`, ...options.headers, };
-            try {
-                const response = await fetch(url, { ...options, headers });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`GitHub API Error (${response.status}): ${errorData.message || 'Unknown error'}`);
-                }
-                if (response.status === 204) return { success: true }; 
-                return response.json();
-            } catch (error) {
-                showToast(error.message, true);
-                console.error(error);
-                return null;
-            }
-        };
+		const apiRequest = async (url, options = {}) => {
+			if (!githubAccessToken) { showToast("Authentication token is missing.", true); return null; }
+			const headers = { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `token ${githubAccessToken}`, ...options.headers, };
+			try {
+				const response = await fetch(url, { ...options, headers });
+				if (!response.ok) {
+					const errorData = await response.json();
+					throw new Error(`GitHub API Error (${response.status}): ${errorData.message || 'Unknown error'}`);
+				}
+				if (response.status === 204) return { success: true }; 
+				return response.json();
+			} catch (error) {
+				showToast(error.message, true);
+				console.error(error);
+				return null;
+			}
+		};
 
-        const getFile = async (filePath) => {
-            const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${filePath}?ref=${GITHUB_CONFIG.branch}`;
-            const data = await apiRequest(url);
-            if (!data) return null;
-            return { content: atob(data.content), sha: data.sha };
-        };
+		const getFile = async (filePath) => {
+			const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${filePath}?ref=${GITHUB_CONFIG.branch}`;
+			const data = await apiRequest(url);
+			if (!data) return null;
+			return { content: atob(data.content), sha: data.sha };
+		};
 
-        // --- CORRECTED: updateFile now handles already-encoded content ---
-        const updateFile = async (filePath, content, sha, commitMessage, isBase64 = false) => {
-            const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${filePath}`;
-            const body = {
-                message: commitMessage,
-                content: isBase64 ? content : btoa(content),
-                sha: sha,
-                branch: GITHUB_CONFIG.branch
-            };
-            return await apiRequest(url, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-        };
+		const updateFile = async (filePath, content, sha, commitMessage, isBase64 = false) => {
+			const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${filePath}`;
+			const body = {
+				message: commitMessage,
+				content: isBase64 ? content : btoa(content),
+				sha: sha,
+				branch: GITHUB_CONFIG.branch
+			};
+			return await apiRequest(url, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body)
+			});
+		};
 
-        const showToast = (message, isError = false) => {
-            toast.textContent = message;
-            toast.className = `toast show ${isError ? 'bg-red-600' : 'bg-gray-700'}`;
-            setTimeout(() => { toast.className = 'toast'; }, 3000);
-        };
-        const setLoading = (isLoading) => {
-            loadingIndicator.classList.toggle('hidden', !isLoading);
-            loadServicesBtn.disabled = isLoading;
-            saveChangesBtn.disabled = isLoading || !hasChanges;
-        };
-        const updateSaveChangesBtn = () => { hasChanges = true; saveChangesBtn.disabled = false; };
+		const showToast = (message, isError = false) => {
+			toast.textContent = message;
+			toast.className = `toast show ${isError ? 'bg-red-600' : 'bg-gray-700'}`;
+			setTimeout(() => { toast.className = 'toast'; }, 3000);
+		};
+		const setLoading = (isLoading) => {
+			loadingIndicator.classList.toggle('hidden', !isLoading);
+			loadServicesBtn.disabled = isLoading;
+			saveChangesBtn.disabled = isLoading || !hasChanges;
+		};
+		const updateSaveChangesBtn = () => { hasChanges = true; saveChangesBtn.disabled = false; };
 
-        // --- Service Management Logic ---
-        const renderServiceList = () => {
-            serviceList.innerHTML = '';
-            serviceList.classList.toggle('reorder-mode', isReorderMode);
+		// --- Service Management Logic ---
+		const renderServiceList = () => {
+			serviceList.innerHTML = '';
+			serviceList.classList.toggle('reorder-mode', isReorderMode);
 
-            services.forEach((service, index) => {
-                const isStatic = staticServices.some(s => s.id === service.id);
-                const card = document.createElement('div');
-                card.className = 'service-card bg-gray-700 p-4 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow';
-                card.dataset.id = service.id;
+			services.forEach((service, index) => {
+				const isStatic = staticServices.some(s => s.id === service.id);
+				const card = document.createElement('div');
+				card.className = 'service-card bg-gray-700 p-4 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow';
+				card.dataset.id = service.id;
 
-                let actionButtonsHTML = '';
-                if (!isStatic) {
-                    if (isReorderMode) {
-                        actionButtonsHTML = `
-                            <button title="Move Up" onclick="moveService(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="p-2 rounded-full bg-gray-600 hover:bg-gray-500 disabled:opacity-30 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg></button>
-                            <button title="Move Down" onclick="moveService(${index}, 1)" ${index === services.length - 1 - staticServices.length ? 'disabled' : ''} class="p-2 rounded-full bg-gray-600 hover:bg-gray-500 disabled:opacity-30 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
-                        `;
-                    } else {
-                        actionButtonsHTML = `
-                            <button title="Edit" onclick="openServiceModal(${index})" class="p-2 rounded-full bg-blue-600 hover:bg-blue-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
-                            <button title="Delete" onclick="confirmDelete(${index})" class="p-2 rounded-full bg-red-600 hover:bg-red-500 text-white transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
-                        `;
-                    }
-                } else {
-                    actionButtonsHTML = '<span class="text-xs text-gray-500 italic pr-4">Static</span>';
-                }
+				let actionButtonsHTML = '';
+				if (!isStatic) {
+					if (isReorderMode) {
+						actionButtonsHTML = `
+							<button title="Move Up" onclick="moveService(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="p-2 rounded-full bg-gray-600 hover:bg-gray-500 disabled:opacity-30 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg></button>
+							<button title="Move Down" onclick="moveService(${index}, 1)" ${index === services.length - 1 - staticServices.length ? 'disabled' : ''} class="p-2 rounded-full bg-gray-600 hover:bg-gray-500 disabled:opacity-30 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
+						`;
+					} else {
+						actionButtonsHTML = `
+							<button title="Edit" onclick="openServiceModal(${index})" class="p-2 rounded-full bg-blue-600 hover:bg-blue-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
+							<button title="Delete" onclick="confirmDelete(${index})" class="p-2 rounded-full bg-red-600 hover:bg-red-500 text-white transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+						`;
+					}
+				} else {
+					actionButtonsHTML = '<span class="text-xs text-gray-500 italic pr-4">Static</span>';
+				}
 
-                card.innerHTML = `
-                    <div class="flex items-center gap-4 w-full">
-                        <img src="${service.icon_url}" alt="${service.name}" class="w-12 h-12 rounded-md object-cover bg-gray-800 flex-shrink-0">
-                        <div class="flex-grow">
-                            <h3 class="font-semibold text-white">${service.name}</h3>
-                            <p class="text-sm text-gray-400">${service.description}</p>
-                            <span class="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded-full mt-1 inline-block">${service.version}</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-end gap-3 w-full sm:w-auto flex-shrink-0">
-                        ${actionButtonsHTML}
-                    </div>`;
-                serviceList.appendChild(card);
-            });
-        };
+				card.innerHTML = `
+					<div class="flex items-center gap-4 w-full">
+						<img src="${service.icon_url}" alt="${service.name}" class="w-12 h-12 rounded-md object-cover bg-gray-800 flex-shrink-0">
+						<div class="flex-grow">
+							<h3 class="font-semibold text-white">${service.name}</h3>
+							<p class="text-sm text-gray-400">${service.description}</p>
+							<span class="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded-full mt-1 inline-block">${service.version}</span>
+						</div>
+					</div>
+					<div class="flex items-center justify-end gap-3 w-full sm:w-auto flex-shrink-0">
+						${actionButtonsHTML}
+					</div>`;
+				serviceList.appendChild(card);
+			});
+		};
 
-        const toggleReorderMode = () => {
-            isReorderMode = !isReorderMode;
-            if (isReorderMode) {
-                toggleReorderBtn.textContent = 'Finish Re-ordering';
-                toggleReorderBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-700');
-                toggleReorderBtn.classList.add('bg-red-600', 'hover:bg-red-500');
-            } else {
-                toggleReorderBtn.textContent = 'Re-order List';
-                toggleReorderBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
-                toggleReorderBtn.classList.remove('bg-red-600', 'hover:bg-red-500');
-            }
-            renderServiceList();
-        };
+		const toggleReorderMode = () => {
+			isReorderMode = !isReorderMode;
+			if (isReorderMode) {
+				toggleReorderBtn.textContent = 'Finish Re-ordering';
+				toggleReorderBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-700');
+				toggleReorderBtn.classList.add('bg-red-600', 'hover:bg-red-500');
+			} else {
+				toggleReorderBtn.textContent = 'Re-order List';
+				toggleReorderBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+				toggleReorderBtn.classList.remove('bg-red-600', 'hover:bg-red-500');
+			}
+			renderServiceList();
+		};
 
-        const loadServices = async () => {
-            setLoading(true);
-            const jsonData = await getFile(GITHUB_CONFIG.paths.json);
-            const shData = await getFile(GITHUB_CONFIG.paths.sh);
-            if (!jsonData || !shData) { setLoading(false); return; }
-            jsonFile.sha = jsonData.sha;
-            shFile = { content: shData.content, sha: shData.sha };
-            const allServices = JSON.parse(jsonData.content);
+		const loadServices = async () => {
+			setLoading(true);
+			const jsonData = await getFile(GITHUB_CONFIG.paths.json);
+			const shData = await getFile(GITHUB_CONFIG.paths.sh);
+			if (!jsonData || !shData) { setLoading(false); return; }
+			jsonFile.sha = jsonData.sha;
+			shFile = { content: shData.content, sha: shData.sha };
+			const allServices = JSON.parse(jsonData.content);
 
-            const caseBlock = shData.content.match(/# --- Dynamic Cases Start ---([\s\S]*?)# --- Dynamic Cases End ---/)?.[1] || '';
-            const matches = [...caseBlock.matchAll(/^\s*(install_\w+)\)/gm)];
-            const dynamicServiceIds = new Set(matches.map(m => m[1]));
-            
-            allServices.forEach(service => {
-                if (dynamicServiceIds.has(service.id)) {
-                    const funcRegex = new RegExp(`(^|\\n)${service.id}\\s*\\(\\s*\\)\\s*\\{([\\s\\S]*?)\\}`, 'm');
-                    const funcMatch = shData.content.match(funcRegex);
-                    if (funcMatch && funcMatch[2]) {
-                        const body = funcMatch[2].trim();
-                        if (body.includes('wget -q')) {
-                            service.type = 'url';
-                            const urlVarMatch = body.match(/\$URL_(\w+)/);
-                            if (urlVarMatch) {
-                                const urlVarName = `URL_${urlVarMatch[1]}`;
-                                const urlRegex = new RegExp(`^${urlVarName}="(.*?)"`, 'm');
-                                const urlMatch = shData.content.match(urlRegex);
-                                if (urlMatch && urlMatch[1]) {
-                                     service.script_url = urlMatch[1];
-                                } else {
-                                    console.warn(`Could not parse script_url for service: ${service.name}.`);
-                                    service.script_url = ''; 
-                                }
-                            } else {
-                                console.warn(`Could not find URL variable for service: ${service.name}.`);
-                                service.script_url = ''; 
-                            }
-                        } else {
-                            service.type = 'commands';
-                            service.commands = body;
-                        }
-                    }
-                }
-            });
+			const caseBlock = shData.content.match(/# --- Dynamic Cases Start ---([\s\S]*?)# --- Dynamic Cases End ---/)?.[1] || '';
+			const matches = [...caseBlock.matchAll(/^\s*(install_\w+)\)/gm)];
+			const dynamicServiceIds = new Set(matches.map(m => m[1]));
+			
+			// RESTORED: Logic to determine service type by inspecting the shell script
+			allServices.forEach(service => {
+				if (dynamicServiceIds.has(service.id)) {
+					const funcRegex = new RegExp(`(^|\\n)${service.id}\\s*\\(\\s*\\)\\s*\\{([\\s\\S]*?)\\}`, 'm');
+					const funcMatch = shData.content.match(funcRegex);
+					if (funcMatch && funcMatch[2]) {
+						const body = funcMatch[2].trim();
+						if (body.includes('wget -q')) {
+							service.type = 'url';
+						} else {
+							service.type = 'commands';
+							service.commands = body;
+						}
+					}
+				}
+			});
 
-            services = allServices.filter(s => dynamicServiceIds.has(s.id));
-            staticServices = allServices.filter(s => !dynamicServiceIds.has(s.id));
-            const dynamicServicesSorted = [...services];
-            services = [...dynamicServicesSorted, ...staticServices]; 
+			services = allServices.filter(s => dynamicServiceIds.has(s.id));
+			staticServices = allServices.filter(s => !dynamicServiceIds.has(s.id));
+			const dynamicServicesSorted = [...services];
+			services = [...dynamicServicesSorted, ...staticServices]; 
 
-            renderServiceList();
-            hasChanges = false;
-            saveChangesBtn.disabled = true;
-            setLoading(false);
-            showToast("Services loaded successfully.");
-        };
-        
-        const openServiceModal = (index = null) => {
-            const isEditing = index !== null;
-            const service = isEditing ? services[index] : { type: 'url' };
-            const modalTitle = isEditing ? 'Edit Service' : 'Add New Service';
-            const buttonText = isEditing ? 'Save Changes' : 'Create Service';
+			renderServiceList();
+			hasChanges = false;
+			saveChangesBtn.disabled = true;
+			setLoading(false);
+			showToast("Services loaded successfully.");
+		};
+		
+		const openServiceModal = (index = null) => {
+			const isEditing = index !== null;
+			const service = isEditing ? services[index] : { type: 'url' };
+			const modalTitle = isEditing ? 'Edit Service' : 'Add New Service';
+			const buttonText = isEditing ? 'Save Changes' : 'Create Service';
 
-            serviceModal.innerHTML = `
-                <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-lg m-4">
-                    <h2 class="text-2xl font-bold mb-6 text-white">${modalTitle}</h2>
-                    <form id="service-form" class="space-y-4">
-                        <input type="hidden" id="service-index" value="${isEditing ? index : ''}">
-                        <div><label for="service-name" class="block text-sm font-medium text-gray-300">Service Name</label><input type="text" id="service-name" value="${service.name || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded"></div>
-                        <div><label for="service-desc" class="block text-sm font-medium text-gray-300">Description</label><input type="text" id="service-desc" value="${service.description || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded"></div>
-                        <div><label for="service-icon" class="block text-sm font-medium text-gray-300">Icon URL</label><input type="url" id="service-icon" value="${service.icon_url || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded"></div>
-                        <div><label for="service-version" class="block text-sm font-medium text-gray-300">Version</label><input type="text" id="service-version" value="${service.version || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded"></div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Service Type</label>
-                            <div class="flex gap-4">
-                                <label class="flex items-center"><input type="radio" name="service-type" value="url" ${service.type === 'url' ? 'checked' : ''} class="mr-2"> URL-based</label>
-                                <label class="flex items-center"><input type="radio" name="service-type" value="commands" ${service.type === 'commands' ? 'checked' : ''} class="mr-2"> Command-based</label>
-                            </div>
-                        </div>
+			serviceModal.innerHTML = `
+				<div class="bg-gray-800 p-6 rounded-2xl shadow-2xl w-full max-w-2xl m-4 max-h-[90vh] overflow-y-auto">
+					<h2 class="text-2xl font-bold mb-6 text-white">${modalTitle}</h2>
+					<form id="service-form" class="space-y-4">
+						<input type="hidden" id="service-index" value="${isEditing ? index : ''}">
+						
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div><label for="service-name" class="block text-sm font-medium text-gray-300">Service Name</label><input type="text" id="service-name" value="${service.name || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded-md border border-gray-600"></div>
+							<div><label for="service-version" class="block text-sm font-medium text-gray-300">Version</label><input type="text" id="service-version" value="${service.version || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded-md border border-gray-600"></div>
+						</div>
 
-                        <div id="url-input-container"><label for="service-script" class="block text-sm font-medium text-gray-300">Install Script URL</label><input type="url" id="service-script" value="${service.script_url || ''}" class="mt-1 w-full p-2 bg-gray-700 rounded"></div>
-                        <div id="commands-input-container" class="hidden"><label for="service-commands" class="block text-sm font-medium text-gray-300">Shell Commands</label><textarea id="service-commands" rows="4" class="mt-1 w-full p-2 bg-gray-700 rounded font-mono">${service.commands || ''}</textarea></div>
+						<div><label for="service-desc" class="block text-sm font-medium text-gray-300">Description</label><textarea id="service-desc" rows="2" required class="mt-1 w-full p-2 bg-gray-700 rounded-md border border-gray-600">${service.description || ''}</textarea></div>
+						<div><label for="service-icon" class="block text-sm font-medium text-gray-300">Icon URL</label><input type="url" id="service-icon" value="${service.icon_url || ''}" required class="mt-1 w-full p-2 bg-gray-700 rounded-md border border-gray-600"></div>
+						
+						<div class="border-t border-gray-700 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div><label for="service-publisher" class="block text-sm font-medium text-gray-300">Publisher Name (Optional)</label><input type="text" id="service-publisher" value="${service.publisher || ''}" class="mt-1 w-full p-2 bg-gray-700 rounded-md border border-gray-600"></div>
+							<div><label for="service-publisher-url" class="block text-sm font-medium text-gray-300">Publisher URL (Optional)</label><input type="url" id="service-publisher-url" value="${service.publisher_url || ''}" class="mt-1 w-full p-2 bg-gray-700 rounded-md border border-gray-600"></div>
+						</div>
 
-                        <div class="pt-4 flex justify-end gap-4"><button type="button" onclick="closeServiceModal()" class="px-6 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Cancel</button><button type="submit" class="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg">${buttonText}</button></div>
-                    </form>
-                </div>`;
-            serviceModal.classList.remove('hidden');
+						<!-- RESTORED: Service Type Selection -->
+						<div class="border-t border-gray-700 pt-4">
+							<label class="block text-sm font-medium text-gray-300 mb-2">Service Type</label>
+							<div class="flex gap-4">
+								<label class="flex items-center"><input type="radio" name="service-type" value="url" ${service.type === 'url' || !service.type ? 'checked' : ''} class="mr-2 accent-blue-500"> URL-based</label>
+								<label class="flex items-center"><input type="radio" name="service-type" value="commands" ${service.type === 'commands' ? 'checked' : ''} class="mr-2 accent-blue-500"> Command-based</label>
+							</div>
+						</div>
+						
+						<!-- RESTORED: URL and Command Inputs -->
+						<div id="url-input-container">
+							<label for="service-script" class="block text-sm font-medium text-gray-300">Install Script URL</label>
+							<input type="url" id="service-script" value="${service.script_url || ''}" class="mt-1 w-full p-2 bg-gray-700 rounded-md border border-gray-600">
+						</div>
+						<div id="commands-input-container" class="hidden">
+							<label for="service-commands" class="block text-sm font-medium text-gray-300">Shell Commands</label>
+							<textarea id="service-commands" rows="4" class="mt-1 w-full p-2 bg-gray-700 rounded-md border border-gray-600 font-mono">${service.commands || ''}</textarea>
+						</div>
 
-            const urlContainer = document.getElementById('url-input-container');
-            const commandsContainer = document.getElementById('commands-input-container');
-            const typeRadios = document.querySelectorAll('input[name="service-type"]');
-            
-            function toggleInput(type) {
-                if (type === 'url') {
-                    urlContainer.classList.remove('hidden');
-                    commandsContainer.classList.add('hidden');
-                    document.getElementById('service-script').required = true;
-                    document.getElementById('service-commands').required = false;
-                } else {
-                    urlContainer.classList.add('hidden');
-                    commandsContainer.classList.remove('hidden');
-                    document.getElementById('service-script').required = false;
-                    document.getElementById('service-commands').required = true;
-                }
-            }
-            
-            typeRadios.forEach(radio => radio.addEventListener('change', (e) => toggleInput(e.target.value)));
-            toggleInput(service.type);
+						<div class="border-t border-gray-700 pt-4">
+							<label for="service-uninstall-script" class="block text-sm font-medium text-gray-300">Uninstall Script URL (Optional)</label>
+							<input type="url" id="service-uninstall-script" value="${service.uninstall_script_url || ''}" class="mt-1 w-full p-2 bg-gray-700 rounded-md border border-gray-600">
+							<p class="text-xs text-gray-500 mt-1">Leave empty if this service doesn't have an uninstaller.</p>
+						</div>
 
-            document.getElementById('service-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const indexValue = document.getElementById('service-index').value;
-                const type = document.querySelector('input[name="service-type"]:checked').value;
+						<div class="pt-4 flex justify-end gap-4"><button type="button" onclick="closeServiceModal()" class="px-6 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Cancel</button><button type="submit" class="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg">${buttonText}</button></div>
+					</form>
+				</div>`;
+			serviceModal.classList.remove('hidden');
 
-                const newService = {
-                    id: `install_${document.getElementById('service-name').value.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
-                    name: document.getElementById('service-name').value,
-                    description: document.getElementById('service-desc').value,
-                    icon_url: document.getElementById('service-icon').value,
-                    version: document.getElementById('service-version').value,
-                    type: type,
-                    script_url: type === 'url' ? document.getElementById('service-script').value : undefined,
-                    commands: type === 'commands' ? document.getElementById('service-commands').value : undefined,
-                };
-                
-                Object.keys(newService).forEach(key => newService[key] === undefined && delete newService[key]);
+			// RESTORED: JS logic to toggle between URL and Command inputs
+			const urlContainer = document.getElementById('url-input-container');
+			const commandsContainer = document.getElementById('commands-input-container');
+			const typeRadios = document.querySelectorAll('input[name="service-type"]');
+			
+			function toggleInput(type) {
+				if (type === 'url') {
+					urlContainer.classList.remove('hidden');
+					commandsContainer.classList.add('hidden');
+					document.getElementById('service-script').required = true;
+					document.getElementById('service-commands').required = false;
+				} else {
+					urlContainer.classList.add('hidden');
+					commandsContainer.classList.remove('hidden');
+					document.getElementById('service-script').required = false;
+					document.getElementById('service-commands').required = true;
+				}
+			}
+			
+			typeRadios.forEach(radio => radio.addEventListener('change', (e) => toggleInput(e.target.value)));
+			toggleInput(service.type || 'url'); // Default to 'url'
 
-                if (indexValue) { 
-                    services[parseInt(indexValue)] = newService;
-                } else { 
-                    const insertIndex = services.length - staticServices.length;
-                    services.splice(insertIndex, 0, newService);
-                }
-                renderServiceList();
-                updateSaveChangesBtn();
-                closeServiceModal();
-            });
-        };
+			document.getElementById('service-form').addEventListener('submit', (e) => {
+				e.preventDefault();
+				const indexValue = document.getElementById('service-index').value;
+				const serviceName = document.getElementById('service-name').value;
+				const serviceId = `install_${serviceName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+				const uninstallScriptUrl = document.getElementById('service-uninstall-script').value;
+				const type = document.querySelector('input[name="service-type"]:checked').value;
 
-        const closeServiceModal = () => serviceModal.classList.add('hidden');
-        const confirmDelete = (index) => { confirmModal.innerHTML = `<div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm m-4 text-center"><h2 class="text-xl font-bold mb-4 text-white">Are you sure?</h2><p class="text-gray-400 mb-6">This will permanently delete the "${services[index].name}" service.</p><div class="flex justify-center gap-4"><button onclick="closeConfirmModal()" class="px-6 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Cancel</button><button onclick="deleteService(${index})" class="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg">Delete</button></div></div>`; confirmModal.classList.remove('hidden'); };
-        const closeConfirmModal = () => confirmModal.classList.add('hidden');
-        const deleteService = (index) => { services.splice(index, 1); renderServiceList(); updateSaveChangesBtn(); closeConfirmModal(); };
-        const moveService = (index, direction) => { const newIndex = index + direction; const dynamicServicesCount = services.length - staticServices.length; if (newIndex < 0 || newIndex >= dynamicServicesCount) return; [services[index], services[newIndex]] = [services[newIndex], services[index]]; renderServiceList(); updateSaveChangesBtn(); };
-        
-        const generateShFile = () => {
-            const dynamicServices = services.filter(s => !staticServices.some(staticS => staticS.id === s.id));
-            
-            const urlSection = dynamicServices
-                .filter(s => s.type === 'url' && s.script_url)
-                .map(s => `URL_${s.id.replace('install_', '').toUpperCase()}="${s.script_url}"`).join('\n');
+				const newService = {
+					id: serviceId,
+					name: serviceName,
+					description: document.getElementById('service-desc').value,
+					icon_url: document.getElementById('service-icon').value,
+					version: document.getElementById('service-version').value,
+					publisher: document.getElementById('service-publisher').value || undefined,
+					publisher_url: document.getElementById('service-publisher-url').value || undefined,
+					uninstall_id: uninstallScriptUrl ? `uninstall_${serviceName.toLowerCase().replace(/[^a-z0-9]/g, '')}` : undefined,
+					uninstall_script_url: uninstallScriptUrl || undefined,
+					// RESTORED: Save type and conditional fields
+					type: type,
+					script_url: type === 'url' ? document.getElementById('service-script').value : undefined,
+					commands: type === 'commands' ? document.getElementById('service-commands').value : undefined,
+				};
+				
+				Object.keys(newService).forEach(key => newService[key] === undefined && delete newService[key]);
 
-            const funcSection = dynamicServices.map(s => {
-                let funcBody = '';
-                if (s.type === 'url') {
-                    if (!s.script_url) {
-                        console.error(`Service "${s.name}" is type 'url' but has no script_url. Skipping function body.`);
-                        funcBody = `\n    echo "ERROR: Configuration for ${s.name} is incomplete. Missing script URL."\n`;
-                    } else {
-                        const varName = `URL_${s.id.replace('install_', '').toUpperCase()}`;
-                        const scriptFileName = s.script_url.split('/').pop();
-                        funcBody = `
-    echo "Downloading ${s.name} components..."
-    cd /tmp && rm -f ${scriptFileName} && wget -q "$${varName}" -O ${scriptFileName} && chmod +x ${scriptFileName} && sh ${scriptFileName}
+				if (indexValue) { 
+					services[parseInt(indexValue)] = newService;
+				} else { 
+					const insertIndex = services.length - staticServices.length;
+					services.splice(insertIndex, 0, newService);
+				}
+				renderServiceList();
+				updateSaveChangesBtn();
+				closeServiceModal();
+			});
+		};
+
+		const closeServiceModal = () => serviceModal.classList.add('hidden');
+		const confirmDelete = (index) => { confirmModal.innerHTML = `<div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm m-4 text-center"><h2 class="text-xl font-bold mb-4 text-white">Are you sure?</h2><p class="text-gray-400 mb-6">This will permanently delete the "${services[index].name}" service.</p><div class="flex justify-center gap-4"><button onclick="closeConfirmModal()" class="px-6 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Cancel</button><button onclick="deleteService(${index})" class="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg">Delete</button></div></div>`; confirmModal.classList.remove('hidden'); };
+		const closeConfirmModal = () => confirmModal.classList.add('hidden');
+		const deleteService = (index) => { services.splice(index, 1); renderServiceList(); updateSaveChangesBtn(); closeConfirmModal(); };
+		const moveService = (index, direction) => { const newIndex = index + direction; const dynamicServicesCount = services.length - staticServices.length; if (newIndex < 0 || newIndex >= dynamicServicesCount) return; [services[index], services[newIndex]] = [services[newIndex], services[index]]; renderServiceList(); updateSaveChangesBtn(); };
+		
+		const generateShFile = () => {
+			const dynamicServices = services.filter(s => !staticServices.some(staticS => staticS.id === s.id));
+			
+			// URLs for URL-based services
+			const urlSection = dynamicServices
+				.filter(s => s.type === 'url' && s.script_url)
+				.map(s => `URL_${s.id.toUpperCase()}="${s.script_url}"`).join('\n');
+			
+			const uninstallUrlSection = dynamicServices
+				.filter(s => s.uninstall_script_url)
+				.map(s => `URL_UNINSTALL_${s.id.toUpperCase()}="${s.uninstall_script_url}"`).join('\n');
+
+			// Install functions for both types
+			const funcSection = dynamicServices.map(s => {
+				let funcBody = '';
+				if (s.type === 'url') {
+					const scriptFileName = s.script_url.split('/').pop();
+					funcBody = `
+	echo "Downloading ${s.name} components..."
+	cd /tmp && rm -f ${scriptFileName} && wget -q "$URL_${s.id.toUpperCase()}" -O ${scriptFileName} && chmod +x ${scriptFileName} && sh ${scriptFileName}
 `;
-                    }
-                } else { // type === 'commands'
-                    funcBody = `\n    ${s.commands.replace(/\n/g, '\n    ')}\n`;
-                }
-                return `${s.id}() {${funcBody}}`;
-            }).join('\n\n');
+				} else { // type === 'commands'
+					funcBody = `\n	${s.commands.replace(/\n/g, '\n	')}\n`;
+				}
+				return `${s.id}() {${funcBody}}`;
+			}).join('\n\n');
 
-            const caseSection = dynamicServices.map(s => `    ${s.id}) ${s.id} ;;`).join('\n');
-            
-            let shContent = shFile.content;
-            shContent = shContent.replace(/(# --- Dynamic URLs Start ---)[\s\S]*?(# --- Dynamic URLs End ---)/, `$1\n${urlSection}\n$2`);
-            shContent = shContent.replace(/(# --- Dynamic Functions Start ---)[\s\S]*?(# --- Dynamic Functions End ---)/, `$1\n${funcSection}\n$2`);
-            shContent = shContent.replace(/(# --- Dynamic Cases Start ---)[\s\S]*?(# --- Dynamic Cases End ---)/, `$1\n${caseSection}\n$2`);
-            
-            return shContent;
-        };
+			// Uninstall functions (currently only URL-based)
+			const uninstallFuncSection = dynamicServices.filter(s => s.uninstall_id).map(s => {
+				const scriptFileName = s.uninstall_script_url.split('/').pop();
+				const funcBody = `
+	echo "Downloading Uninstall ${s.name} components..."
+	cd /tmp && rm -f ${scriptFileName} && wget -q "$URL_UNINSTALL_${s.id.toUpperCase()}" -O ${scriptFileName} && chmod +x ${scriptFileName} && sh ${scriptFileName}
+`;
+				return `${s.uninstall_id}() {${funcBody}}`;
+			}).join('\n\n');
 
-        const saveChanges = async () => { 
-            setLoading(true); 
-            const jsonToSave = services.map(s => {
-                const cleanService = { ...s };
-                delete cleanService.type;
-                delete cleanService.commands;
-                return cleanService;
-            }).filter(s => s.id);
-            
-            const newJsonContent = JSON.stringify(jsonToSave, null, 2); 
-            const newShContent = generateShFile(); 
-            showToast("Updating services.json..."); 
-            const jsonUpdate = await updateFile(GITHUB_CONFIG.paths.json, newJsonContent, jsonFile.sha, 'Update services via web updater'); 
-            if (jsonUpdate) { 
-                jsonFile.sha = jsonUpdate.content.sha; 
-                showToast("Updating service_runner.sh..."); 
-                const shUpdate = await updateFile(GITHUB_CONFIG.paths.sh, newShContent, shFile.sha, 'Update runner via web updater'); 
-                if (shUpdate) { 
-                    shFile.sha = shUpdate.content.sha; 
-                    showToast("All changes saved successfully!", false); 
-                    hasChanges = false; 
-                    saveChangesBtn.disabled = true; 
-                } else { 
-                    showToast("Failed to update runner script. JSON file was updated.", true); 
-                } 
-            } else { 
-                showToast("Failed to update JSON file. No changes were saved.", true); 
-            } 
-            setLoading(false); 
-        };
+			const caseSection = dynamicServices.map(s => {
+				let cases = `	${s.id}) ${s.id} ;;`;
+				if (s.uninstall_id) {
+					cases += `\n	${s.uninstall_id}) ${s.uninstall_id} ;;`;
+				}
+				return cases;
+			}).join('\n');
+			
+			let shContent = shFile.content;
+			shContent = shContent.replace(/(# --- Dynamic URLs Start ---)[\s\S]*?(# --- Dynamic URLs End ---)/, `$1\n${urlSection}\n$2`);
+			shContent = shContent.replace(/(# --- Dynamic Uninstall URLs Start ---)[\s\S]*?(# --- Dynamic Uninstall URLs End ---)/, `$1\n${uninstallUrlSection}\n$2`);
+			shContent = shContent.replace(/(# --- Dynamic Functions Start ---)[\s\S]*?(# --- Dynamic Functions End ---)/, `$1\n${funcSection}\n$2`);
+			shContent = shContent.replace(/(# --- Dynamic Uninstall Functions Start ---)[\s\S]*?(# --- Dynamic Uninstall Functions End ---)/, `$1\n${uninstallFuncSection}\n$2`);
+			shContent = shContent.replace(/(# --- Dynamic Cases Start ---)[\s\S]*?(# --- Dynamic Cases End ---)/, `$1\n${caseSection}\n$2`);
+			
+			return shContent;
+		};
 
-        // --- FINAL, RELIABLE UPLOADER: Uploads to your own GitHub Repo ---
-        const openUploaderModal = () => {
-            uploaderModal.innerHTML = `
-                <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-lg m-4">
-                    <h2 class="text-2xl font-bold mb-6 text-white">Upload Icon to GitHub Repo</h2>
-                     <p class="text-sm text-gray-400 mb-4">Icons will be uploaded to: <code class="bg-gray-700 p-1 rounded">${GITHUB_CONFIG.paths.icons}</code></p>
-                    <div id="file-drop-area" class="file-drop-area rounded-lg p-8 text-center cursor-pointer mb-4">
-                        <p class="text-gray-400">Drag & drop your image here, or click to select a file.</p>
-                        <input type="file" id="file-input" class="hidden" accept="image/*">
-                    </div>
-                    <div id="preview-area" class="hidden text-center">
-                        <img id="image-preview" class="max-h-48 mx-auto rounded-lg mb-4">
-                    </div>
-                    <div id="upload-result" class="hidden">
-                        <label class="block text-sm font-medium text-gray-300">Image URL (CDN Link):</label>
-                        <div class="flex items-center gap-2 mt-1">
-                            <input type="text" id="image-url" readonly class="w-full p-2 bg-gray-700 rounded border-gray-600">
-                            <button id="copy-url-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg">Copy</button>
-                        </div>
-                    </div>
-                    <div id="upload-progress" class="hidden mt-4">
-                        <p class="text-center text-sm text-gray-400 mt-2">Uploading to GitHub...</p>
-                    </div>
-                    <div class="pt-6 flex justify-end gap-4">
-                        <button type="button" onclick="closeUploaderModal()" class="px-6 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Close</button>
-                        <button id="upload-btn" class="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>Upload</button>
-                    </div>
-                </div>`;
-            uploaderModal.classList.remove('hidden');
+		const saveChanges = async () => { 
+			setLoading(true); 
+			// In JSON, we don't need 'type' or 'commands'
+			const jsonToSave = services.map(s => {
+				const { type, commands, ...rest } = s;
+				return rest;
+			}).filter(s => s.id);
+			
+			const newJsonContent = JSON.stringify(jsonToSave, null, 2); 
+			const newShContent = generateShFile(); 
+			showToast("Updating services.json..."); 
+			const jsonUpdate = await updateFile(GITHUB_CONFIG.paths.json, newJsonContent, jsonFile.sha, 'Update services via web updater'); 
+			if (jsonUpdate) { 
+				jsonFile.sha = jsonUpdate.content.sha; 
+				showToast("Updating service_runner.sh..."); 
+				const shUpdate = await updateFile(GITHUB_CONFIG.paths.sh, newShContent, shFile.sha, 'Update runner via web updater'); 
+				if (shUpdate) { 
+					shFile.sha = shUpdate.content.sha; 
+					showToast("All changes saved successfully!", false); 
+					hasChanges = false; 
+					saveChangesBtn.disabled = true; 
+				} else { 
+					showToast("Failed to update runner script. JSON file was updated.", true); 
+				} 
+			} else { 
+				showToast("Failed to update JSON file. No changes were saved.", true); 
+			} 
+			setLoading(false); 
+		};
 
-            const dropArea = document.getElementById('file-drop-area');
-            const fileInput = document.getElementById('file-input');
-            const imagePreview = document.getElementById('image-preview');
-            const uploadBtn = document.getElementById('upload-btn');
-            let selectedFile = null;
-            
-            dropArea.onclick = () => fileInput.click();
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
-                dropArea.addEventListener(eventName, () => dropArea.classList.toggle('highlight', eventName === 'dragover' || eventName === 'dragenter'));
-            });
+		// --- Uploader Logic ---
+		const openUploaderModal = () => {
+			uploaderModal.innerHTML = `
+				<div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-lg m-4">
+					<h2 class="text-2xl font-bold mb-6 text-white">Upload Icon to GitHub Repo</h2>
+					 <p class="text-sm text-gray-400 mb-4">Icons will be uploaded to: <code class="bg-gray-700 p-1 rounded">${GITHUB_CONFIG.paths.icons}</code></p>
+					<div id="file-drop-area" class="file-drop-area rounded-lg p-8 text-center cursor-pointer mb-4">
+						<p class="text-gray-400">Drag & drop your image here, or click to select a file.</p>
+						<input type="file" id="file-input" class="hidden" accept="image/*">
+					</div>
+					<div id="preview-area" class="hidden text-center">
+						<img id="image-preview" class="max-h-48 mx-auto rounded-lg mb-4">
+					</div>
+					<div id="upload-result" class="hidden">
+						<label class="block text-sm font-medium text-gray-300">Image URL (CDN Link):</label>
+						<div class="flex items-center gap-2 mt-1">
+							<input type="text" id="image-url" readonly class="w-full p-2 bg-gray-700 rounded border-gray-600">
+							<button id="copy-url-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg">Copy</button>
+						</div>
+					</div>
+					<div id="upload-progress" class="hidden mt-4">
+						<p class="text-center text-sm text-gray-400 mt-2">Uploading to GitHub...</p>
+					</div>
+					<div class="pt-6 flex justify-end gap-4">
+						<button type="button" onclick="closeUploaderModal()" class="px-6 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Close</button>
+						<button id="upload-btn" class="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>Upload</button>
+					</div>
+				</div>`;
+			uploaderModal.classList.remove('hidden');
 
-            dropArea.addEventListener('drop', (e) => handleFile(e.dataTransfer.files[0]));
-            fileInput.onchange = (e) => handleFile(e.target.files[0]);
+			const dropArea = document.getElementById('file-drop-area');
+			const fileInput = document.getElementById('file-input');
+			const imagePreview = document.getElementById('image-preview');
+			const uploadBtn = document.getElementById('upload-btn');
+			let selectedFile = null;
+			
+			dropArea.onclick = () => fileInput.click();
+			['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+				dropArea.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+				dropArea.addEventListener(eventName, (event) => dropArea.classList.toggle('highlight', eventName === 'dragover' || eventName === 'dragenter'));
+			});
 
-            function handleFile(file) {
-                if (!file || !file.type.startsWith('image/')) {
-                    showToast("Please select a valid image file.", true); return;
-                }
-                selectedFile = file;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    imagePreview.src = e.target.result;
-                    document.getElementById('preview-area').classList.remove('hidden');
-                    uploadBtn.disabled = false;
-                }
-                reader.readAsDataURL(file);
-            }
+			dropArea.addEventListener('drop', (e) => handleFile(e.dataTransfer.files[0]));
+			fileInput.onchange = (e) => handleFile(e.target.files[0]);
 
-            uploadBtn.onclick = () => {
-                if (!selectedFile) return;
+			function handleFile(file) {
+				if (!file || !file.type.startsWith('image/')) {
+					showToast("Please select a valid image file.", true); return;
+				}
+				selectedFile = file;
+				const reader = new FileReader();
+				reader.onload = (e) => {
+					imagePreview.src = e.target.result;
+					document.getElementById('preview-area').classList.remove('hidden');
+					uploadBtn.disabled = false;
+				}
+				reader.readAsDataURL(file);
+			}
 
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                    const base64Content = event.target.result.split(',')[1];
-                    const filePath = `${GITHUB_CONFIG.paths.icons}/${Date.now()}-${selectedFile.name}`;
-                    const commitMessage = `Upload icon: ${selectedFile.name}`;
+			uploadBtn.onclick = () => {
+				if (!selectedFile) return;
 
-                    document.getElementById('upload-progress').classList.remove('hidden');
-                    uploadBtn.disabled = true;
+				const reader = new FileReader();
+				reader.onload = async (event) => {
+					const base64Content = event.target.result.split(',')[1];
+					const filePath = `${GITHUB_CONFIG.paths.icons}/${Date.now()}-${selectedFile.name}`;
+					const commitMessage = `Upload icon: ${selectedFile.name}`;
 
-                    // --- CORRECTED: Calling updateFile with isBase64 = true ---
-                    const result = await updateFile(filePath, base64Content, null, commitMessage, true);
+					document.getElementById('upload-progress').classList.remove('hidden');
+					uploadBtn.disabled = true;
 
-                    if (result && result.content) {
-                        const jsdelivrUrl = `https://cdn.jsdelivr.net/gh/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}@${GITHUB_CONFIG.branch}/${filePath}`;
-                        document.getElementById('image-url').value = jsdelivrUrl;
-                        document.getElementById('upload-result').classList.remove('hidden');
-                        showToast("Upload successful!", false);
-                    } else {
-                        showToast("Upload failed. Check console for details.", true);
-                    }
-                    document.getElementById('upload-progress').classList.add('hidden');
-                };
-                reader.readAsDataURL(selectedFile);
-            };
+					const result = await updateFile(filePath, base64Content, null, commitMessage, true);
 
-            document.getElementById('copy-url-btn').onclick = () => {
-                navigator.clipboard.writeText(document.getElementById('image-url').value).then(() => showToast("URL copied to clipboard!"));
-            };
-        };
+					if (result && result.content) {
+						const jsdelivrUrl = `https://cdn.jsdelivr.net/gh/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}@${GITHUB_CONFIG.branch}/${filePath}`;
+						document.getElementById('image-url').value = jsdelivrUrl;
+						document.getElementById('upload-result').classList.remove('hidden');
+						showToast("Upload successful!", false);
+					} else {
+						showToast("Upload failed. Check console for details.", true);
+					}
+					document.getElementById('upload-progress').classList.add('hidden');
+				};
+				reader.readAsDataURL(selectedFile);
+			};
 
-        const closeUploaderModal = () => uploaderModal.classList.add('hidden');
-        
-        // --- Event Listeners ---
-        openUploaderBtn.addEventListener('click', openUploaderModal);
-        loadServicesBtn.addEventListener('click', loadServices);
-        addNewBtn.addEventListener('click', () => openServiceModal());
-        saveChangesBtn.addEventListener('click', saveChanges);
-        toggleReorderBtn.addEventListener('click', toggleReorderMode);
+			document.getElementById('copy-url-btn').onclick = () => {
+				navigator.clipboard.writeText(document.getElementById('image-url').value).then(() => showToast("URL copied to clipboard!"));
+			};
+		};
 
-    </script>
+		const closeUploaderModal = () => uploaderModal.classList.add('hidden');
+		
+		// --- Event Listeners ---
+		openUploaderBtn.addEventListener('click', openUploaderModal);
+		loadServicesBtn.addEventListener('click', loadServices);
+		addNewBtn.addEventListener('click', () => openServiceModal());
+		saveChangesBtn.addEventListener('click', saveChanges);
+		toggleReorderBtn.addEventListener('click', toggleReorderMode);
+
+	</script>
 </body>
 </html>
 
