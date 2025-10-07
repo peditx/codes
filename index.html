@@ -294,32 +294,35 @@
 			if (!jsonData || !shData) { setLoading(false); return; }
 			jsonFile.sha = jsonData.sha;
 			shFile = { content: shData.content, sha: shData.sha };
-			const allServices = JSON.parse(jsonData.content);
+			const allServicesFromJson = JSON.parse(jsonData.content);
 
-			const caseBlock = shData.content.match(/# --- Dynamic Cases Start ---([\s\S]*?)# --- Dynamic Cases End ---/)?.[1] || '';
-			const matches = [...caseBlock.matchAll(/^\s*(?:install|uninstall)_(\w+)\)/gm)];
-			const dynamicServiceNames = new Set(matches.map(m => `install_${m[1]}`));
+            // Define truly static services. These are managed in the template, not by this UI.
+            const STATIC_SERVICE_IDS = new Set(['change_repo', 'install_wol', 'cleanup_memory']);
 
-			allServices.forEach(service => {
-				if (dynamicServiceNames.has(service.id)) {
-					const funcRegex = new RegExp(`(^|\\n)${service.id}\\s*\\(\\s*\\)\\s*\\{([\\s\S]*?)\\}`, 'm');
-					const funcMatch = shData.content.match(funcRegex);
-					if (funcMatch && funcMatch[2]) {
-						const body = funcMatch[2].trim();
-						if (body.includes('wget -q "$URL_')) {
-							service.type = 'url';
-						} else {
-							service.type = 'commands';
-							service.commands = body;
-						}
-					}
-				}
+            // Everything in the JSON that isn't static is dynamic and editable.
+            const dynamicServices = allServicesFromJson.filter(s => !STATIC_SERVICE_IDS.has(s.id));
+            staticServices = allServicesFromJson.filter(s => STATIC_SERVICE_IDS.has(s.id));
+
+            // Now, determine the type (url vs command) and get content for each dynamic service.
+			dynamicServices.forEach(service => {
+                // Heuristic: If it has a script_url, it's URL-based. Otherwise, it must be command-based.
+                if (service.script_url) {
+                    service.type = 'url';
+                } else {
+                    service.type = 'commands';
+                    // If it's command-based, we need to extract the commands from the .sh file.
+                    const funcRegex = new RegExp(`(^|\\n)${service.id}\\s*\\(\\s*\\)\\s*\\{([\\s\S]*?)\\}`, 'm');
+                    const funcMatch = shData.content.match(funcRegex);
+                    if (funcMatch && funcMatch[2]) {
+                        service.commands = funcMatch[2].trim();
+                    } else {
+                        // If function is not found in sh file, it might be a new service.
+                        service.commands = `echo "Executing ${service.name}..."\n# Add commands here`;
+                    }
+                }
 			});
 
-			services = allServices.filter(s => dynamicServiceNames.has(s.id));
-			staticServices = allServices.filter(s => !dynamicServiceNames.has(s.id));
-			const dynamicServicesSorted = [...services];
-			services = [...dynamicServicesSorted, ...staticServices]; 
+			services = [...dynamicServices, ...staticServices]; 
 
 			renderServiceList();
 			hasChanges = false;
@@ -406,7 +409,7 @@
 				e.preventDefault();
 				const indexValue = document.getElementById('service-index').value;
 				const serviceName = document.getElementById('service-name').value;
-				const serviceId = `install_${serviceName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+				const serviceId = isEditing ? services[parseInt(indexValue)].id : `install_${serviceName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 				const uninstallScriptUrl = document.getElementById('service-uninstall-script').value;
 				const type = document.querySelector('input[name="service-type"]:checked').value;
 
@@ -418,16 +421,20 @@
 					version: document.getElementById('service-version').value,
 					publisher: document.getElementById('service-publisher').value || undefined,
 					publisher_url: document.getElementById('service-publisher-url').value || undefined,
-					uninstall_id: uninstallScriptUrl ? `uninstall_${serviceName.toLowerCase().replace(/[^a-z0-9]/g, '')}` : undefined,
+					uninstall_id: uninstallScriptUrl ? `uninstall_${serviceId.replace('install_', '')}` : undefined,
 					uninstall_script_url: uninstallScriptUrl || undefined,
 					type: type,
 					script_url: type === 'url' ? document.getElementById('service-script').value : undefined,
 					commands: type === 'commands' ? document.getElementById('service-commands').value : undefined,
 				};
 				
-				Object.keys(newService).forEach(key => newService[key] === undefined && delete newService[key]);
+				Object.keys(newService).forEach(key => {
+                    if (newService[key] === undefined || newService[key] === null || newService[key] === '') {
+                        delete newService[key];
+                    }
+                });
 
-				if (indexValue) { 
+				if (indexValue !== '') { 
 					services[parseInt(indexValue)] = newService;
 				} else { 
 					const insertIndex = services.length - staticServices.length;
@@ -454,7 +461,7 @@
 			
 			const uninstallUrlSection = dynamicServices
 				.filter(s => s.uninstall_script_url)
-				.map(s => `URL_UNINSTALL_${s.id.toUpperCase()}="${s.uninstall_script_url}"`).join('\n');
+				.map(s => `URL_UNINSTALL_${s.id.replace('install_','').toUpperCase()}="${s.uninstall_script_url}"`).join('\n');
 
 			const funcSection = dynamicServices.map(s => {
 				let funcBody = '';
@@ -474,7 +481,7 @@
 				const scriptFileName = s.uninstall_script_url.split('/').pop();
 				const funcBody = `
 	echo "Downloading Uninstall ${s.name} components..."
-	cd /tmp && rm -f ${scriptFileName} && wget -q "$URL_UNINSTALL_${s.id.toUpperCase()}" -O ${scriptFileName} && chmod +x ${scriptFileName} && sh ${scriptFileName}
+	cd /tmp && rm -f ${scriptFileName} && wget -q "$URL_UNINSTALL_${s.id.replace('install_','').toUpperCase()}" -O ${scriptFileName} && chmod +x ${scriptFileName} && sh ${scriptFileName}
 `;
 				return `${s.uninstall_id}() {${funcBody}}`;
 			}).join('\n\n');
